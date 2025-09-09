@@ -1,0 +1,22 @@
+on:
+  pull_request:
+    branches:
+      - main
+      - dev
+    types: [opened, reopened, synchronize]
+
+jobs:
+  copilot-review:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run GitHub Copilot Review
+        uses: github/copilot-review@v1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
