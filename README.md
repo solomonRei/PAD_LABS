@@ -102,8 +102,7 @@ Some services interact to share data or trigger actions, typically via **notific
   - **Lost & Found Service** to allow user verification in posts and discussions.
   - **User Management Service** to validate users in chats.
   - **Check-in Service** to verify active users for chat participation.
-- **Technology:** **Node.js (Express + Redis)**
-  - Motivation: Node.js excels in real-time chat; Redis is perfect for fast message moderation and caching.
+- **Technology:** **Java (Spring Boot + MongoDB)**
 - **Communication Pattern:** **WebSockets + REST**
   - WebSockets for real-time messaging.
   - REST for moderation and bans.
@@ -170,23 +169,14 @@ Some services interact to share data or trigger actions, typically via **notific
   - **Tea Management Service** for consumable usage alerts.
   - **Budgeting Service** for financial updates.
   - **Sharing Service** for item usage and overdue notifications.
-- **Technology**: **Java (Spring Boot + Kafka)** – chosen for reliable event-driven messaging and scalability.
-- **Communication Pattern**: Event-driven (Kafka) for broadcasting alerts; REST for direct admin notifications.
-- **Trade-offs**: Java + Kafka add operational overhead but provide guaranteed message delivery and resilience.
+- **Technology**: **Java (Spring Boot)**
 
 ---
 
 ## Communication Overview
 
 - **REST APIs** are used for synchronous, user-facing operations (e.g., creating bookings, posting lost items).
-- **Event-driven messaging** (Kafka/RabbitMQ) is used for asynchronous updates (e.g., notifications, debts, resource shortages).
 - **WebSockets** are used for real-time chat in the Communication service.
-
-This hybrid communication ensures:
-
-- **Consistency** where immediate responses are needed.
-- **Scalability** for asynchronous workflows.
-- **Real-time responsiveness** for chat and alerts.
 
 ---
 
