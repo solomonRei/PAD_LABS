@@ -4,3 +4,9 @@
 [submodule "tea-service"]
 	path = tea-service
 	url = https://github.com/solomonRei/PAD_TEA_SVC
+[submodule "notification-service"]
+	path = notification-service
+	url = git@github.com:korn1evski/PAD_NOTIFICATION_SVC.git
+[submodule "user-service"]
+	path = user-service
+	url = git@github.com:korn1evski/PAD_USER_SVC.git
