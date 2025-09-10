@@ -1,0 +1,6 @@
+[submodule "communication-service"]
+	path = communication-service
+	url = https://github.com/solomonRei/PAD_COMMUNICATION_SVC
+[submodule "tea-service"]
+	path = tea-service
+	url = https://github.com/solomonRei/PAD_TEA_SVC
