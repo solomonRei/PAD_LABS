@@ -1,0 +1,6 @@
+[submodule "cab_booking_service"]
+	path = cab_booking_service
+	url = https://github.com/danielparfene9/cab_booking_service
+[submodule "check_in_service"]
+	path = check_in_service
+	url = https://github.com/danielparfene9/check_in_service
