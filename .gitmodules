@@ -4,3 +4,9 @@
 [submodule "check_in_service"]
 	path = check_in_service
 	url = https://github.com/danielparfene9/check_in_service
+[submodule "budgeting_service"]
+	path = budgeting_service
+	url = https://github.com/MItan9/budgeting-service
+[submodule "lost_found_service"]
+	path = lost_found_service
+	url = https://github.com/MItan9/lost-found-service
