@@ -22,3 +22,9 @@
 [submodule "tea_service"]
 	path = tea_service
 	url = https://github.com/solomonRei/PAD_TEA_SVC
+[submodule "user_service"]
+	path = user_service
+	url = https://github.com/korn1evski/PAD_USER_SVC
+[submodule "notification_service"]
+	path = notification_service
+	url = https://github.com/korn1evski/PAD_NOTIFICATION_SVC
