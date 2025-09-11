@@ -10,3 +10,9 @@
 [submodule "lost_found_service"]
 	path = lost_found_service
 	url = https://github.com/MItan9/lost-found-service
+[submodule "sharing_service"]
+	path = sharing_service
+	url = https://github.com/Elena-Nidelcu/sharing-service
+[submodule "fundraising_service"]
+	path = fundraising_service
+	url = https://github.com/Elena-Nidelcu/fundraising-service
