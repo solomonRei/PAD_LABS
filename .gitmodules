@@ -1,0 +1,30 @@
+[submodule "cab_booking_service"]
+	path = cab_booking_service
+	url = https://github.com/danielparfene9/cab_booking_service
+[submodule "check_in_service"]
+	path = check_in_service
+	url = https://github.com/danielparfene9/check_in_service
+[submodule "budgeting_service"]
+	path = budgeting_service
+	url = https://github.com/MItan9/budgeting-service
+[submodule "lost_found_service"]
+	path = lost_found_service
+	url = https://github.com/MItan9/lost-found-service
+[submodule "sharing_service"]
+	path = sharing_service
+	url = https://github.com/Elena-Nidelcu/sharing-service
+[submodule "fundraising_service"]
+	path = fundraising_service
+	url = https://github.com/Elena-Nidelcu/fundraising-service
+[submodule "communication_service"]
+	path = communication_service
+	url = https://github.com/solomonRei/PAD_COMMUNICATION_SVC
+[submodule "tea_service"]
+	path = tea_service
+	url = https://github.com/solomonRei/PAD_TEA_SVC
+[submodule "user_service"]
+	path = user_service
+	url = https://github.com/korn1evski/PAD_USER_SVC
+[submodule "notification_service"]
+	path = notification_service
+	url = https://github.com/korn1evski/PAD_NOTIFICATION_SVC
