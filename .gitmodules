@@ -16,3 +16,9 @@
 [submodule "fundraising_service"]
 	path = fundraising_service
 	url = https://github.com/Elena-Nidelcu/fundraising-service
+[submodule "communication_service"]
+	path = communication_service
+	url = https://github.com/solomonRei/PAD_COMMUNICATION_SVC
+[submodule "tea_service"]
+	path = tea_service
+	url = https://github.com/solomonRei/PAD_TEA_SVC
