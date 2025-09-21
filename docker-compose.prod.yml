@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: usersvc-postgres
+    environment:
+      POSTGRES_DB: ${USER_SVC_DB_NAME}
+      POSTGRES_USER: ${USER_SVC_DB_USER}
+      POSTGRES_PASSWORD: ${USER_SVC_DB_PASSWORD}
+    volumes:
+      - ./postgres-auth:/data/postgres
+    ports:
+      - "5432:5432"
+    networks:
+      - pad-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-pad_user} -d ${DB_NAME:-pad_users}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  user-service:
+    image: laineer/pad-user-svc:latest
+    container_name: pad-user-service
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SERVER_PORT: ${USER_SVC_SERVER_PORT:-8080}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://usersvc-postgres:5432/${USER_SVC_DB_NAME}
+      SPRING_DATASOURCE_USERNAME: ${USER_SVC_SPRING_DATASOURCE_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${USER_SVC_SPRING_DATASOURCE_PASSWORD}
+      DISCORD_CLIENT_ID: ${USER_SVC_DISCORD_CLIENT_ID}
+      DISCORD_CLIENT_SECRET: ${USER_SVC_DISCORD_CLIENT_SECRET}
+      DISCORD_BOT_TOKEN: ${USER_SVC_DISCORD_BOT_TOKEN}
+      FAF_GUILD_ID: ${USER_SVC_FAF_GUILD_ID}
+      JWT_SECRET: ${USER_SVC_JWT_SECRET}
+      JWT_TTL_MINUTES: ${USER_SVC_JWT_TTL_MINUTES}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: ${USER_SVC_SPRING_JPA_HIBERNATE_DDL_AUTO}
+    ports:
+      - "${USER_SVC_EXTERNAL_PORT:-8080}:${SERVER_PORT:-8080}"
+    networks:
+      - pad-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${USER_SVC_SERVER_PORT}/userservice/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  pad-network:
+    driver: bridge
