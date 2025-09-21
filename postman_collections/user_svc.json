@@ -1,0 +1,905 @@
+{
+	"info": {
+		"_postman_id": "3654cb91-fdc6-480d-b206-f26246f857f7",
+		"name": "User Service",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "11772011",
+		"_collection_link": "https://savdo-team-tj.postman.co/workspace/Parking-lot~41b54da2-6563-4027-bfc3-9778d6cd4ae2/collection/11772011-3654cb91-fdc6-480d-b206-f26246f857f7?action=share&source=collection_link&creator=11772011"
+	},
+	"item": [
+		{
+			"name": "User Service",
+			"item": [
+				{
+					"name": "GET /users/{id}",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIiwiaXNzIjoiZmFmLXVzZXItc3ZjIiwiaWF0IjoxNzU4MjA5NDU0LCJleHAiOjE3NTgyMTY2NTQsInJvbGVzIjpbIkZBRi1lciIsIuKZn--4j0NoZXNzTWFzdGVyIiwiRkFGLTIyeCJdLCJkaXNjb3JkX2lkIjoiMjcwNjAxMjc4OTA2ODI2NzUyIn0.1N6uyAxC0cfCUIhobR73fV9fTCaq5yNlQ5pC5BAJYco",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{userservice_base}}/users/1",
+							"host": [
+								"{{userservice_base}}"
+							],
+							"path": [
+								"users",
+								"1"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "GET /users/{id}",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}"
+									},
+									{
+										"key": "Accept",
+										"value": "application/json"
+									}
+								],
+								"url": {
+									"raw": "{{userservice_base}}/users/1",
+									"host": [
+										"{{userservice_base}}"
+									],
+									"path": [
+										"users",
+										"1"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": null,
+							"header": [
+								{
+									"key": "Vary",
+									"value": "Origin"
+								},
+								{
+									"key": "Vary",
+									"value": "Access-Control-Request-Method"
+								},
+								{
+									"key": "Vary",
+									"value": "Access-Control-Request-Headers"
+								},
+								{
+									"key": "X-Content-Type-Options",
+									"value": "nosniff"
+								},
+								{
+									"key": "X-XSS-Protection",
+									"value": "0"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "no-cache, no-store, max-age=0, must-revalidate"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Expires",
+									"value": "0"
+								},
+								{
+									"key": "X-Frame-Options",
+									"value": "DENY"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								},
+								{
+									"key": "Transfer-Encoding",
+									"value": "chunked"
+								},
+								{
+									"key": "Date",
+									"value": "Thu, 18 Sep 2025 15:31:59 GMT"
+								},
+								{
+									"key": "Keep-Alive",
+									"value": "timeout=60"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"id\": 1,\n    \"email\": \"bcorn2002@gmail.com\",\n    \"name\": \"laineer\",\n    \"roles\": [\n        \"FAF-er\",\n        \"♟️ChessMaster\",\n        \"FAF-22x\"\n    ]\n}"
+						}
+					]
+				},
+				{
+					"name": "POST /guests",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIiwiaXNzIjoiZmFmLXVzZXItc3ZjIiwiaWF0IjoxNzU4NDU4MDA1LCJleHAiOjE3NTg0NjUyMDUsInJvbGVzIjpbIkZBRi1lciIsIuKZn--4j0NoZXNzTWFzdGVyIiwiRkFGLTIyeCJdLCJ1c2VyX2lkIjoiMSJ9.hUK3ws4UMDSJGoz7kgGzI4jTDVBfgWC0jMvfxMHrbes",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-Idempotency-Key",
+								"value": "{{$guid}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Guest John Doe\",\n  \"hostUserId\": 1,\n  \"faceId\": \"asdas\",\n  \"validUntil\": \"2025-09-22T23:59:59Z\",\n  \"permanent\": true\n}"
+						},
+						"url": {
+							"raw": "{{userservice_base}}/guests",
+							"host": [
+								"{{userservice_base}}"
+							],
+							"path": [
+								"guests"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "POST /guests",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}"
+									},
+									{
+										"key": "Accept",
+										"value": "application/json"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "X-Idempotency-Key",
+										"value": "{{$guid}}"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"name\": \"Guest John Doe\",\n  \"hostUserId\": 1,\n  \"faceId\": \"asda\",\n  \"validUntil\": \"2025-09-22T23:59:59Z\",\n  \"permanent\": true\n}"
+								},
+								"url": {
+									"raw": "{{userservice_base}}/guests",
+									"host": [
+										"{{userservice_base}}"
+									],
+									"path": [
+										"guests"
+									]
+								}
+							},
+							"status": "Created",
+							"code": 201,
+							"_postman_previewlanguage": null,
+							"header": [
+								{
+									"key": "Vary",
+									"value": "Origin"
+								},
+								{
+									"key": "Vary",
+									"value": "Access-Control-Request-Method"
+								},
+								{
+									"key": "Vary",
+									"value": "Access-Control-Request-Headers"
+								},
+								{
+									"key": "X-Content-Type-Options",
+									"value": "nosniff"
+								},
+								{
+									"key": "X-XSS-Protection",
+									"value": "0"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "no-cache, no-store, max-age=0, must-revalidate"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Expires",
+									"value": "0"
+								},
+								{
+									"key": "X-Frame-Options",
+									"value": "DENY"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								},
+								{
+									"key": "Transfer-Encoding",
+									"value": "chunked"
+								},
+								{
+									"key": "Date",
+									"value": "Sun, 21 Sep 2025 14:00:35 GMT"
+								},
+								{
+									"key": "Keep-Alive",
+									"value": "timeout=60"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"id\": 3,\n    \"name\": \"Guest John Doe\",\n    \"faceId\": \"asda\",\n    \"hostUserId\": 1,\n    \"validFrom\": \"2025-09-21T17:00:35.059749+03:00\",\n    \"validUntil\": \"2025-09-22T23:59:59Z\",\n    \"permanent\": true,\n    \"currentlyValid\": true\n}"
+						}
+					]
+				},
+				{
+					"name": "GET /me",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIiwiaXNzIjoiZmFmLXVzZXItc3ZjIiwiaWF0IjoxNzU4MjA5NDU0LCJleHAiOjE3NTgyMTY2NTQsInJvbGVzIjpbIkZBRi1lciIsIuKZn--4j0NoZXNzTWFzdGVyIiwiRkFGLTIyeCJdLCJkaXNjb3JkX2lkIjoiMjcwNjAxMjc4OTA2ODI2NzUyIn0.1N6uyAxC0cfCUIhobR73fV9fTCaq5yNlQ5pC5BAJYco",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{userservice_base}}/me",
+							"host": [
+								"{{userservice_base}}"
+							],
+							"path": [
+								"me"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "GET me",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{userservice_base}}/me",
+									"host": [
+										"{{userservice_base}}"
+									],
+									"path": [
+										"me"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": null,
+							"header": [
+								{
+									"key": "Vary",
+									"value": "Origin"
+								},
+								{
+									"key": "Vary",
+									"value": "Access-Control-Request-Method"
+								},
+								{
+									"key": "Vary",
+									"value": "Access-Control-Request-Headers"
+								},
+								{
+									"key": "X-Content-Type-Options",
+									"value": "nosniff"
+								},
+								{
+									"key": "X-XSS-Protection",
+									"value": "0"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "no-cache, no-store, max-age=0, must-revalidate"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Expires",
+									"value": "0"
+								},
+								{
+									"key": "X-Frame-Options",
+									"value": "DENY"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								},
+								{
+									"key": "Transfer-Encoding",
+									"value": "chunked"
+								},
+								{
+									"key": "Date",
+									"value": "Thu, 18 Sep 2025 15:32:50 GMT"
+								},
+								{
+									"key": "Keep-Alive",
+									"value": "timeout=60"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"id\": 1,\n    \"email\": \"bcorn2002@gmail.com\",\n    \"roles\": [\n        \"FAF-er\",\n        \"♟️ChessMaster\",\n        \"FAF-22x\"\n    ],\n    \"username\": \"laineer\"\n}"
+						}
+					]
+				},
+				{
+					"name": "POST /guests/{guestId}/token",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIiwiaXNzIjoiZmFmLXVzZXItc3ZjIiwiaWF0IjoxNzU4NDU4MDA1LCJleHAiOjE3NTg0NjUyMDUsInJvbGVzIjpbIkZBRi1lciIsIuKZn--4j0NoZXNzTWFzdGVyIiwiRkFGLTIyeCJdLCJ1c2VyX2lkIjoiMSJ9.hUK3ws4UMDSJGoz7kgGzI4jTDVBfgWC0jMvfxMHrbes",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-Idempotency-Key",
+								"value": "{{$guid}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Guest John Doe\",\n  \"hostUserId\": 1,\n  \"faceId\": \"asdas\",\n  \"validUntil\": \"2025-09-22T23:59:59Z\",\n  \"permanent\": true\n}"
+						},
+						"url": {
+							"raw": "{{userservice_base}}/guests/{guestId}/token",
+							"host": [
+								"{{userservice_base}}"
+							],
+							"path": [
+								"guests",
+								"{guestId}",
+								"token"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "POST /guests/{guestId}/token",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}"
+									},
+									{
+										"key": "Accept",
+										"value": "application/json"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "X-Idempotency-Key",
+										"value": "{{$guid}}"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"name\": \"Guest John Doe\",\n  \"hostUserId\": 1,\n  \"faceId\": \"asdas\",\n  \"validUntil\": \"2025-09-22T23:59:59Z\",\n  \"permanent\": true\n}"
+								},
+								"url": {
+									"raw": "{{userservice_base}}/guests/3/token",
+									"host": [
+										"{{userservice_base}}"
+									],
+									"path": [
+										"guests",
+										"3",
+										"token"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": null,
+							"header": [
+								{
+									"key": "Vary",
+									"value": "Origin"
+								},
+								{
+									"key": "Vary",
+									"value": "Access-Control-Request-Method"
+								},
+								{
+									"key": "Vary",
+									"value": "Access-Control-Request-Headers"
+								},
+								{
+									"key": "X-Content-Type-Options",
+									"value": "nosniff"
+								},
+								{
+									"key": "X-XSS-Protection",
+									"value": "0"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "no-cache, no-store, max-age=0, must-revalidate"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Expires",
+									"value": "0"
+								},
+								{
+									"key": "X-Frame-Options",
+									"value": "DENY"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								},
+								{
+									"key": "Transfer-Encoding",
+									"value": "chunked"
+								},
+								{
+									"key": "Date",
+									"value": "Sun, 21 Sep 2025 14:06:43 GMT"
+								},
+								{
+									"key": "Keep-Alive",
+									"value": "timeout=60"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"token\": \"eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJndWVzdF8zIiwiaXNzIjoiZmFmLXVzZXItc3ZjIiwiaWF0IjoxNzU4NDYzNjAyLCJleHAiOjE3NTg0NzA4MDIsInVzZXJfaWQiOiJndWVzdF8zIiwicm9sZXMiOlsiR1VFU1RfQllfU1lTVEVNIl19.OAjYCchHvh0LklEjTjYNMYOjOdvJzsX8fxJDUwKaP_g\",\n    \"guestDetails\": {\n        \"id\": 3,\n        \"name\": \"Guest John Doe\",\n        \"faceId\": \"asda\",\n        \"hostUserId\": 1,\n        \"validFrom\": \"2025-09-21T14:00:35.059749Z\",\n        \"validUntil\": \"2025-09-22T23:59:59Z\",\n        \"permanent\": true,\n        \"currentlyValid\": true\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "POST /users/refresh/{userId} (ADMIN)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIiwiaXNzIjoiZmFmLXVzZXItc3ZjIiwiaWF0IjoxNzU4NDgxNzYxLCJleHAiOjE3NTg0ODg5NjEsInVzZXJfaWQiOiIxIiwicm9sZXMiOlsiRkFGLWVyIiwi4pmf77iPQ2hlc3NNYXN0ZXIiLCJGQUYtMjJ4IiwiQURNSU4iXX0.kTKQXoeNMyVWqTSxlP3rbmmeK1qwtV4LLerI5Eo1hGA",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{userservice_base}}/users/refresh/1",
+							"host": [
+								"{{userservice_base}}"
+							],
+							"path": [
+								"users",
+								"refresh",
+								"1"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "Success",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "{{userservice_base}}/roles/refresh/{userId}",
+									"host": [
+										"{{userservice_base}}"
+									],
+									"path": [
+										"roles",
+										"refresh",
+										"{userId}"
+									]
+								}
+							},
+							"status": "Internal Server Error",
+							"code": 500,
+							"_postman_previewlanguage": "",
+							"header": [
+								{
+									"key": "Vary",
+									"value": "Origin"
+								},
+								{
+									"key": "Vary",
+									"value": "Access-Control-Request-Method"
+								},
+								{
+									"key": "Vary",
+									"value": "Access-Control-Request-Headers"
+								},
+								{
+									"key": "Set-Cookie",
+									"value": "JSESSIONID=6735D04D0A9874DF4E640B4C1791D328; Path=/; HttpOnly"
+								},
+								{
+									"key": "X-Content-Type-Options",
+									"value": "nosniff"
+								},
+								{
+									"key": "X-XSS-Protection",
+									"value": "0"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "no-cache, no-store, max-age=0, must-revalidate"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Expires",
+									"value": "0"
+								},
+								{
+									"key": "X-Frame-Options",
+									"value": "DENY"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								},
+								{
+									"key": "Transfer-Encoding",
+									"value": "chunked"
+								},
+								{
+									"key": "Date",
+									"value": "Sun, 21 Sep 2025 14:09:02 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "close"
+								}
+							],
+							"cookie": [
+								{
+									"expires": "Invalid Date",
+									"domain": "",
+									"path": ""
+								}
+							],
+							"body": "{\n    \"timestamp\": \"2025-09-21T14:09:02.127281Z\",\n    \"status\": 500,\n    \"error\": \"Internal server error\",\n    \"message\": \"Access Denied\"\n}"
+						}
+					]
+				},
+				{
+					"name": "/auth/discord/login",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{userservice_base}}/auth/discord/login",
+							"host": [
+								"{{userservice_base}}"
+							],
+							"path": [
+								"auth",
+								"discord",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "PATCH /users/{userId}",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{userservice_base}}/users/{userId}",
+							"host": [
+								"{{userservice_base}}"
+							],
+							"path": [
+								"users",
+								"{userId}"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "Success",
+							"originalRequest": {
+								"method": "PATCH",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\": \"test\",\n    \"email\": \"test@gmail.com\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{userservice_base}}/users/1",
+									"host": [
+										"{{userservice_base}}"
+									],
+									"path": [
+										"users",
+										"1"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": null,
+							"header": [
+								{
+									"key": "Vary",
+									"value": "Origin"
+								},
+								{
+									"key": "Vary",
+									"value": "Access-Control-Request-Method"
+								},
+								{
+									"key": "Vary",
+									"value": "Access-Control-Request-Headers"
+								},
+								{
+									"key": "X-Content-Type-Options",
+									"value": "nosniff"
+								},
+								{
+									"key": "X-XSS-Protection",
+									"value": "0"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "no-cache, no-store, max-age=0, must-revalidate"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Expires",
+									"value": "0"
+								},
+								{
+									"key": "X-Frame-Options",
+									"value": "DENY"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								},
+								{
+									"key": "Transfer-Encoding",
+									"value": "chunked"
+								},
+								{
+									"key": "Date",
+									"value": "Sun, 21 Sep 2025 19:16:39 GMT"
+								},
+								{
+									"key": "Keep-Alive",
+									"value": "timeout=60"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"id\": 1,\n    \"email\": \"test@gmail.com\",\n    \"name\": \"test\",\n    \"discordId\": \"270601278906826752\",\n    \"enabled\": true,\n    \"roles\": [\n        \"FAF-er\",\n        \"♟️ChessMaster\",\n        \"FAF-22x\",\n        \"ADMIN\"\n    ]\n}"
+						}
+					]
+				},
+				{
+					"name": "DELETE /users/1",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIiwiaXNzIjoiZmFmLXVzZXItc3ZjIiwiaWF0IjoxNzU4NDgxNzYxLCJleHAiOjE3NTg0ODg5NjEsInVzZXJfaWQiOiIxIiwicm9sZXMiOlsiRkFGLWVyIiwi4pmf77iPQ2hlc3NNYXN0ZXIiLCJGQUYtMjJ4IiwiQURNSU4iXX0.kTKQXoeNMyVWqTSxlP3rbmmeK1qwtV4LLerI5Eo1hGA",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{userservice_base}}/users/1",
+							"host": [
+								"{{userservice_base}}"
+							],
+							"path": [
+								"users",
+								"1"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "Success",
+							"originalRequest": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{userservice_base}}/users/1",
+									"host": [
+										"{{userservice_base}}"
+									],
+									"path": [
+										"users",
+										"1"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": null,
+							"header": [
+								{
+									"key": "Vary",
+									"value": "Origin"
+								},
+								{
+									"key": "Vary",
+									"value": "Access-Control-Request-Method"
+								},
+								{
+									"key": "Vary",
+									"value": "Access-Control-Request-Headers"
+								},
+								{
+									"key": "X-Content-Type-Options",
+									"value": "nosniff"
+								},
+								{
+									"key": "X-XSS-Protection",
+									"value": "0"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "no-cache, no-store, max-age=0, must-revalidate"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Expires",
+									"value": "0"
+								},
+								{
+									"key": "X-Frame-Options",
+									"value": "DENY"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								},
+								{
+									"key": "Transfer-Encoding",
+									"value": "chunked"
+								},
+								{
+									"key": "Date",
+									"value": "Sun, 21 Sep 2025 19:21:23 GMT"
+								},
+								{
+									"key": "Keep-Alive",
+									"value": "timeout=60"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"id\": 1,\n    \"email\": \"test@gmail.com\",\n    \"name\": \"test\",\n    \"discordId\": \"270601278906826752\",\n    \"enabled\": false,\n    \"roles\": [\n        \"FAF-er\",\n        \"♟️ChessMaster\",\n        \"FAF-22x\",\n        \"ADMIN\"\n    ]\n}"
+						}
+					]
+				}
+			]
+		}
+	]
+}

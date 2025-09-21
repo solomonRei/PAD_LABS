@@ -182,7 +182,7 @@ Some services interact to share data or trigger actions, typically via **notific
 
 ### Architecture Diagram
 
-![Architecture Diagram](images/ArchitecturalDiagram.jpg)  
+![Architecture Diagram](https://github.com/user-attachments/assets/6dab3c08-1880-4179-991a-62f030282682)
 The diagram shows services as independent modules and arrows indicate communication flows between services.
 
 ## Data Management
