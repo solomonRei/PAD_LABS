@@ -9,8 +9,8 @@ The FAF Cab Management Platform is a comprehensive microservices-based system de
 ### Core Services
 
 | Service                 | Base Path                  | Description                                                |
-| ----------------------- | -------------------------- | ---------------------------------------------------------- |
-| User Management Service | `/userservice/api/v1`      | User authentication, authorization, and profile management |
+| ----------------------- |----------------------------| ---------------------------------------------------------- |
+| User Management Service | `/userservicesvc/api/v1`   | User authentication, authorization, and profile management |
 | Notification Service    | `/notificationsvc/api/v1`  | Multi-channel notification delivery system                 |
 | Communication Service   | `/communicationsvc/api/v1` | Real-time messaging and chat functionality                 |
 | Lost & Found Service    | `/lostfoundsvc/api/v1`     | Item tracking and resolution management                    |
@@ -20,6 +20,21 @@ The FAF Cab Management Platform is a comprehensive microservices-based system de
 | Cab Booking Service     | `/cabbookingsvc/api/v1`    | Room and facility booking system                           |
 | Check-in Service        | `/checkinsvc/api/v1`       | Access control and attendance tracking                     |
 | Tea Management Service  | `/teasvc/api/v1`           | Inventory management for consumables                       |
+
+
+### Docker Hub
+| Service                 | Docker Hub Url                                                          |
+| ----------------------- |-------------------------------------------------------------------------|
+| User Management Service | `https://hub.docker.com/repository/docker/laineer/pad-user-svc`         |
+| Notification Service    | `https://hub.docker.com/repository/docker/laineer/pad-notification-svc` |
+| Communication Service   |                                                                         |
+| Lost & Found Service    |                                                                         |
+| Fund Raising Service    |                                                                         |
+| Sharing Service         |                                                                         |
+| Budgeting Service       |                                                                         |
+| Cab Booking Service     |                                                                         |
+| Check-in Service        |                                                                         |
+| Tea Management Service  |                                                                         |
 
 ### External Integrations
 
@@ -257,162 +272,345 @@ The platform follows a **database-per-service** pattern where each microservice 
 The following sections detail the HTTP API contracts for each service, including base paths, endpoints, required headers, request/response bodies, and query parameters. All data shapes conform to the provided JSON specification.
 
 ---
-
 ## User Management Service
 
-**Base Path:** `/usersvc/api/v1`
+Base Path: `/usersvc/api/v1`
 
-### Endpoints
-
-#### Create User
-
-- **POST** `/users`
-- **Headers:** `X-Idempotency-Key`
-- **Request Body:**
-  ```json
-  {
-    "email": "a@b.com",
-    "name": "Alice",
-    "roles": ["student"],
-    "discordId": null
-  }
-  ```
-- **Response (201):**
-  ```json
-  {
-    "id": "uuid",
-    "email": "a@b.com",
-    "name": "Alice",
-    "roles": ["student"],
-    "discordId": null,
-    "createdAt": "iso"
-  }
-  ```
-
-#### Get User by ID
-
-- **GET** `/users/{id}`
-- **Response (200):**
-  ```json
-  {
-    "id": "uuid",
-    "email": "a@b.com",
-    "name": "Alice",
-    "roles": ["student"],
-    "discordId": null,
-    "createdAt": "iso"
-  }
-  ```
-
-#### List Users
-
-- **GET** `/users`
-- **Query Parameters:** `email`, `q`
-- **Response (200):**
-  ```json
-  [
-    {
-      "id": "uuid",
-      "email": "a@b.com",
-      "name": "Alice",
-      "roles": ["student"]
-    }
-  ]
-  ```
-
-#### Update User
-
-- **PATCH** `/users/{id}`
-- **Request Body:**
-  ```json
-  {
-    "name": "New",
-    "roles": ["teacher"],
-    "discordId": "12345"
-  }
-  ```
-- **Response (200):**
-  ```json
-  {
-    "id": "uuid",
-    "email": "a@b.com",
-    "name": "New",
-    "roles": ["teacher"],
-    "discordId": "12345"
-  }
-  ```
-
-#### Create Guest
-
-- **POST** `/guests`
-- **Headers:** `X-Idempotency-Key`
-- **Request Body:**
-  ```json
-  {
-    "name": "Guest John",
-    "hostUserId": "uuid",
-    "validUntil": "iso"
-  }
-  ```
-- **Response (201):**
-  ```json
-  {
-    "id": "uuid",
-    "name": "Guest John",
-    "roles": ["guest"],
-    "hostUserId": "uuid",
-    "validUntil": "iso"
-  }
-  ```
+**NOTE**
+- All authenticated endpoints expect header: `Authorization: Bearer <JWT>`.
+- Idempotent creates require header: `X-Idempotency-Key: <unique-key>`.
 
 ---
 
+### Endpoints
+
+#### Authentication: Discord OAuth2 Login
+- **METHOD:** GET
+- **PATH:** `/auth/discord/login`
+- **BEHAVIOR:** Redirects to Discord OAuth2; after success the service issues a JWT (flow-specific).
+
+#### Get Current User (Me)
+- **METHOD:** GET
+- **PATH:** `/me`
+- **RESPONSE (200):**
+```json
+{
+  "id": "uuid",
+  "email": "a@b.com",
+  "name": "Alice",
+  "roles": ["student"],
+  "discordId": null,
+  "createdAt": "iso",
+  "enabled": true
+}
+```
+
+#### Logout
+- **METHOD:** POST
+- **PATH:** `/logout`
+- **RESPONSE:** `204 No Content`
+
+---
+
+#### Create User
+- **METHOD:** POST
+- **PATH:** `/users`
+- **HEADERS:** `X-Idempotency-Key`
+- **REQUEST BODY:**
+```json
+{
+  "email": "a@b.com",
+  "name": "Alice",
+  "roles": ["student"],
+  "discordId": null
+}
+```
+- **RESPONSE (201):**
+```json
+{
+  "id": "uuid",
+  "email": "a@b.com",
+  "name": "Alice",
+  "roles": ["student"],
+  "discordId": null,
+  "createdAt": "iso"
+}
+```
+
+#### Get User by ID
+- **METHOD:** GET
+- **PATH:** `/users/{id}`
+- **RESPONSE (200):**
+```json
+{
+  "id": "uuid",
+  "email": "a@b.com",
+  "name": "Alice",
+  "roles": ["student"],
+  "discordId": null,
+  "createdAt": "iso",
+  "enabled": true
+}
+```
+
+#### List Users
+- **METHOD:** GET
+- **PATH:** `/users`
+- **QUERY PARAMETERS:**
+  - `email`  (exact match)
+  - `q`      (free-text by name/email)
+- **RESPONSE (200):**
+```json
+[
+  {
+    "id": "uuid",
+    "email": "a@b.com",
+    "name": "Alice",
+    "roles": ["student"]
+  }
+]
+```
+
+#### Update User
+- **METHOD:** PATCH
+- **PATH:** `/users/{id}`
+- **REQUEST BODY (standard fields):**
+```json
+{
+  "name": "New",
+  "roles": ["teacher"],
+  "discordId": "12345"
+}
+```
+- **REQUEST BODY (admin-only fields, optional):**
+```json
+{
+  "email": "updated@example.com",
+  "enabled": true
+}
+```
+- **RESPONSE (200):**
+```json
+{
+  "id": "uuid",
+  "email": "updated@example.com",
+  "name": "New",
+  "roles": ["teacher"],
+  "discordId": "12345",
+  "enabled": true
+}
+```
+
+#### Soft Delete (Disable) User
+- **METHOD:** DELETE
+- **PATH:** `/users/{id}`
+- **AUTHZ:** ADMIN
+- **BEHAVIOR:** Idempotent soft-delete/disable
+- **RESPONSE:** `204 No Content`
+
+---
+
+#### Create Guest
+- **METHOD:** POST
+- **PATH:** `/guests`
+- **HEADERS:** `X-Idempotency-Key`
+- **REQUEST BODY (minimum):**
+```json
+{
+  "name": "Guest John",
+  "hostUserId": "uuid",
+  "validUntil": "iso"
+}
+```
+- **REQUEST BODY (optional extras, for compatibility):**
+```json
+{
+  "faceId": "face_12345",
+  "validFrom": "iso",
+  "permanent": false
+}
+```
+- **RESPONSE (201):**
+```json
+{
+  "id": "uuid",
+  "name": "Guest John",
+  "roles": ["guest"],
+  "hostUserId": "uuid",
+  "validUntil": "iso"
+}
+```
+
+#### Get Guest by ID
+- **METHOD:** GET
+- **PATH:** `/guests/{id}`
+- **RESPONSE (200):**
+```json
+{
+  "id": "uuid",
+  "name": "Guest John",
+  "roles": ["guest"],
+  "hostUserId": "uuid",
+  "validUntil": "iso",
+  "faceId": "face_12345"
+}
+```
+
+#### Generate Guest Token
+- **METHOD:** POST
+- **PATH:** `/guests/{id}/token`
+- **RESPONSE (200):**
+```json
+{
+  "token": "jwt",
+  "expiresAt": "iso"
+}
+```
+
+---
+
+#### Send Notification
+- **METHOD:** POST
+- **PATH:** `/notifications`
+- **HEADERS:** `X-Idempotency-Key`
+- **REQUEST BODY (application/json):**
+```json
+{
+  "recipient": {
+    "userId": "uuid",
+    "email": null,
+    "discordId": null
+  },
+  "template": "CAB_BOOKED|CAB_CANCELLED|LNF_NEW|LNF_RESOLVED|DEBT_CREATED|LOW_STOCK|UNKNOWN_PERSON",
+  "data": {
+    "bookingId": "uuid",
+    "title": "..."
+  },
+  "channels": ["email", "discord", "push"]
+}
+```
+- **RESPONSE (202):**
+```json
+{
+  "notificationId": "uuid",
+  "status": "queued"
+}
+```
+
+---
+
+#### Admin: Refresh Roles from Discord
+- **METHOD:** POST
+- **PATH:** `/roles/refresh/{userId}`
+- **AUTHZ:** ADMIN
+- **RESPONSE (200):**
+```json
+{
+  "id": "uuid",
+  "roles": ["student", "moderator"],
+  "refreshedAt": "iso",
+  "source": "discord"
+}
+```
+---
+
+---
 ## Notification Service
 
-**Base Path:** `/notisvc/api/v1`
+Base Path: `/notificationsvc/api/v1`
 
 ### Endpoints
 
-#### Send Notification
+#### Send Notification (queue)
+- **METHOD:** POST
+- **PATH:** `/notifications`
+- **HEADERS:** `Content-Type: application/json` *(опционально: `X-Idempotency-Key`)*
+- **COMMENT:** Queue a notification (template + data) to one or more channels.
+- **REQUEST BODY:**
+```json
+{
+  "recipient": { "userId": "uuid", "email": null, "discordId": null },
+  "data": { "bookingId": "uuid", "title": "..." },
+  "channels": ["email", "discord", "push"]
+}
+```
+- **RESPONSE (202):**
+```json
+{
+  "notificationId": "uuid",
+  "status": "queued"
+}
+```
 
-- **POST** `/notifications`
-- **Headers:** `X-Idempotency-Key`
-- **Request Body:**
-  ```json
+---
+
+#### Get Notification by ID (status)
+- **METHOD:** GET
+- **PATH:** `/notifications/{id}`
+- **COMMENT:** Get delivery status for a previously queued notification.
+- **RESPONSE (200):**
+```json
+{
+  "notificationId": "uuid",
+  "status": "queued|sent|failed",
+  "lastError": null
+}
+```
+
+---
+
+#### List Notifications
+- **METHOD:** GET
+- **PATH:** `/notifications`
+- **COMMENT:** List notifications by user. Optional filter by status.
+- **QUERY PARAMETERS:**
+```json
+{
+  "userId": "string (required)",
+  "status": "PENDING|SENT|DELIVERED|READ|FAILED (optional)"
+}
+```
+- **RESPONSE (200):**
+```json
+[
   {
-    "recipient": {
-      "userId": "uuid",
-      "email": null,
-      "discordId": null
-    },
-    "template": "CAB_BOOKED|CAB_CANCELLED|LNF_NEW|LNF_RESOLVED|DEBT_CREATED|LOW_STOCK|UNKNOWN_PERSON",
-    "data": {
-      "bookingId": "uuid",
-      "title": "..."
-    },
-    "channels": ["email", "discord", "push"]
+    "id": "uuid",
+    "type": "USER_REGISTERED",
+    "userId": "uuid",
+    "email": "user@example.com",
+    "title": "You're welcome!",
+    "message": "Thanks for registering.",
+    "channels": ["email"],
+    "status": "PENDING",
+    "createdAt": "2025-09-23T00:00:00",
+    "sentAt": null,
+    "readAt": null
   }
-  ```
-- **Response (202):**
-  ```json
-  {
-    "notificationId": "uuid",
-    "status": "queued"
-  }
-  ```
+]
+```
 
-#### Get Notification Status
+---
 
-- **GET** `/notifications/{id}`
-- **Response (200):**
-  ```json
-  {
-    "notificationId": "uuid",
-    "status": "queued|sent|failed",
-    "lastError": null
-  }
-  ```
-
+#### Update Notification Status
+- **METHOD:** PUT
+- **PATH:** `/notifications/status`
+- **COMMENT:** Update notification status.
+- **REQUEST BODY:**
+```json
+{
+  "notificationId": "string",
+  "status": "SENT|DELIVERED|READ|FAILED"
+}
+```
+- **RESPONSE (200):**
+```json
+{
+  "id": "uuid",
+  "status": "SENT",
+  "sentAt": "2025-09-23T00:00:05",
+  "readAt": null
+}
+```
 ---
 
 ## Communication Service
