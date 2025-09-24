@@ -51,6 +51,29 @@ services:
       retries: 3
       start_period: 40s
 
+  notification-service:
+    image: laineer/pad-notification-svc:latest
+    container_name: pad-notification-service
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SERVER_PORT: ${NOTIFICATION_SVC_SERVER_PORT}
+      NOTIFICATION_SVC_MAIL_ENABLED: ${NOTIFICATION_SVC_MAIL_ENABLED:-false}
+      NOTIFICATION_SVC_MAIL_FROM: ${NOTIFICATION_SVC_MAIL_FROM:-no-reply@example.com}
+      NOTIFICATION_SVC_MAIL_USERNAME: ${NOTIFICATION_SVC_MAIL_USERNAME:-test}
+      NOTIFICATION_SVC_MAIL_PASSWORD: ${NOTIFICATION_SVC_MAIL_PASSWORD:-test}
+      NOTIFICATION_SVC_MONGO_URI: ${NOTIFICATION_SVC_MONGO_URI}
+      NOTIFICATION_SVC_MONGO_DATABASE: ${NOTIFICATION_SVC_MONGO_DATABASE}
+    ports:
+      - "${NOTIFICATION_SVC_SERVER_PORT:-8080}:${NOTIFICATION_SVC_SERVER_PORT:-8080}"
+    networks:
+      - pad-network
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/notificationsvc/api/v1/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
 volumes:
   postgres_data:
