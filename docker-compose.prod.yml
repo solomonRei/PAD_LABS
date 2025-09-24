@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   postgres:
@@ -15,7 +15,11 @@ services:
     networks:
       - pad-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-pad_user} -d ${DB_NAME:-pad_users}"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${DB_USER:-pad_user} -d ${DB_NAME:-pad_users}",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -45,7 +49,13 @@ services:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:${USER_SVC_SERVER_PORT}/userservice/api/v1/health"]
+      test:
+        [
+          "CMD",
+          "curl",
+          "-f",
+          "http://localhost:${USER_SVC_SERVER_PORT}/userservice/api/v1/health",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -69,11 +79,71 @@ services:
       - pad-network
     restart: unless-stopped
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8080/notificationsvc/api/v1/health" ]
+      test:
+        [
+          "CMD",
+          "curl",
+          "-f",
+          "http://localhost:8080/notificationsvc/api/v1/health",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
+
+  budgeting-service:
+    image: mithancik/pad-budgeting-service:latest
+    container_name: budgeting-service
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: ${BUDGETING_SVC_SERVER_PORT}
+      DATABASE_URL: ${BUDGETING_SVC_DATABASE_URL}
+    volumes:
+      - ./prisma/budgeting:/app/prisma/budgeting
+    ports:
+      - "${BUDGETING_SVC_SERVER_PORT}:3000"
+    networks:
+      - pad-network
+
+  budgeting-sqlite:
+    image: keinos/sqlite3
+    container_name: budgeting-sqlite
+    stdin_open: true
+    tty: true
+    volumes:
+      - ./prisma/budgeting:/app/prisma/budgeting
+    working_dir: /app/prisma/budgeting
+    command: ["sqlite3", "dev.db"]
+    networks:
+      - pad-network
+
+  lost-and-found-service:
+    image: mithancik/pad-budgeting-service:latest
+    container_name: lost-and-found-service
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: ${LOST_AND_FOUND_SVC_SERVER_PORT}
+      DATABASE_URL: ${LOST_AND_FOUND_SVC_DATABASE_URL}
+    volumes:
+      - ./prisma/lost-and-found:/app/prisma/lost-and-found
+    ports:
+      - "${LOST_AND_FOUND_SVC_SERVER_PORT}:3000"
+    networks:
+      - pad-network
+
+  lost-and-found-service-sqlite:
+    image: keinos/sqlite3
+    container_name: lost-and-found-sqlite
+    stdin_open: true
+    tty: true
+    volumes:
+      - ./prisma/lost-and-found:/app/prisma/lost-and-found
+    working_dir: /app/prisma/lost-and-found
+    command: ["sqlite3", "dev.db"]
+    networks:
+      - pad-network
 
 volumes:
   postgres_data:
