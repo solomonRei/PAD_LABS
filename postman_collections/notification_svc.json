@@ -1,0 +1,354 @@
+{
+	"info": {
+		"_postman_id": "48fa4c9b-bdad-4d9c-add2-6c9f600c9423",
+		"name": "Notification Service",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "11772011",
+		"_collection_link": "https://savdo-team-tj.postman.co/workspace/Parking-lot~41b54da2-6563-4027-bfc3-9778d6cd4ae2/collection/11772011-48fa4c9b-bdad-4d9c-add2-6c9f600c9423?action=share&source=collection_link&creator=11772011"
+	},
+	"item": [
+		{
+			"name": "Notification Service",
+			"item": [
+				{
+					"name": "POST /notifications",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-Idempotency-Key",
+								"value": "{{$guid}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"recipient\": {\n    \"userId\": \"uuid\",\n    \"email\": null,\n    \"discordId\": null\n  },\n  \"template\": \"CAB_BOOKED|CAB_CANCELLED|LNF_NEW|LNF_RESOLVED|DEBT_CREATED|LOW_STOCK|UNKNOWN_PERSON\",\n  \"data\": {\n    \"bookingId\": \"uuid\",\n    \"title\": \"...\"\n  },\n  \"channels\": [\n    \"email\",\n    \"discord\",\n    \"push\"\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{notificationsvc_base}}/notifications",
+							"host": [
+								"{{notificationsvc_base}}"
+							],
+							"path": [
+								"notifications"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "POST /notifications",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}"
+									},
+									{
+										"key": "Accept",
+										"value": "application/json"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "X-Idempotency-Key",
+										"value": "{{$guid}}"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"id\": \"event-123\",\n  \"occurredAt\": \"2025-09-23T00:00:00Z\",\n  \"channels\": [\"email\", \"discord\", \"push\"],\n  \"payload\": {\n    \"type\": \"USER_REGISTERED\",\n    \"userId\": \"user-456\",\n    \"email\": \"test@example.com\"\n  }\n}"
+								},
+								"url": {
+									"raw": "{{notificationsvc_base}}/notifications",
+									"host": [
+										"{{notificationsvc_base}}"
+									],
+									"path": [
+										"notifications"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": null,
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								},
+								{
+									"key": "Transfer-Encoding",
+									"value": "chunked"
+								},
+								{
+									"key": "Date",
+									"value": "Wed, 24 Sep 2025 09:22:46 GMT"
+								},
+								{
+									"key": "Keep-Alive",
+									"value": "timeout=60"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"notificationId\": \"68d3b866adc4837f7252e293\"\n}"
+						}
+					]
+				},
+				{
+					"name": "GET /notifications/{id}",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{notificationsvc_base}}/notifications/{id}",
+							"host": [
+								"{{notificationsvc_base}}"
+							],
+							"path": [
+								"notifications",
+								"{id}"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "GET /notifications/{id}",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}"
+									},
+									{
+										"key": "Accept",
+										"value": "application/json"
+									}
+								],
+								"url": {
+									"raw": "{{notificationsvc_base}}/notifications/68d3b866adc4837f7252e293",
+									"host": [
+										"{{notificationsvc_base}}"
+									],
+									"path": [
+										"notifications",
+										"68d3b866adc4837f7252e293"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": null,
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								},
+								{
+									"key": "Transfer-Encoding",
+									"value": "chunked"
+								},
+								{
+									"key": "Date",
+									"value": "Wed, 24 Sep 2025 09:22:57 GMT"
+								},
+								{
+									"key": "Keep-Alive",
+									"value": "timeout=60"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"notificationId\": \"68d3b866adc4837f7252e293\",\n    \"status\": \"queued\",\n    \"lastError\": null\n}"
+						}
+					]
+				},
+				{
+					"name": "GET notifications?userId=user-456",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{notificationsvc_base}}/notifications?userId=user-456",
+							"host": [
+								"{{notificationsvc_base}}"
+							],
+							"path": [
+								"notifications"
+							],
+							"query": [
+								{
+									"key": "userId",
+									"value": "user-456"
+								}
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "GET notifications?userId=user-456",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{notificationsvc_base}}/notifications?userId=user-456",
+									"host": [
+										"{{notificationsvc_base}}"
+									],
+									"path": [
+										"notifications"
+									],
+									"query": [
+										{
+											"key": "userId",
+											"value": "user-456"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": null,
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								},
+								{
+									"key": "Transfer-Encoding",
+									"value": "chunked"
+								},
+								{
+									"key": "Date",
+									"value": "Wed, 24 Sep 2025 09:28:04 GMT"
+								},
+								{
+									"key": "Keep-Alive",
+									"value": "timeout=60"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								}
+							],
+							"cookie": [],
+							"body": "[\n    {\n        \"id\": \"68d3b866adc4837f7252e293\",\n        \"type\": \"USER_REGISTERED\",\n        \"userId\": \"user-456\",\n        \"email\": \"test@example.com\",\n        \"title\": \"You're welcome!\",\n        \"message\": \"Thanks for registering.\",\n        \"channels\": [\n            \"email\",\n            \"discord\",\n            \"push\"\n        ],\n        \"data\": null,\n        \"status\": \"PENDING\",\n        \"createdAt\": \"2025-09-24T12:22:45.998\",\n        \"sentAt\": null,\n        \"readAt\": null\n    },\n    {\n        \"id\": \"68d3b68ed9e93c4567996825\",\n        \"type\": \"USER_REGISTERED\",\n        \"userId\": \"user-456\",\n        \"email\": \"test@example.com\",\n        \"title\": \"You're welcome!\",\n        \"message\": \"Thanks for registering.\",\n        \"channels\": [\n            \"email\",\n            \"discord\",\n            \"push\"\n        ],\n        \"data\": null,\n        \"status\": \"PENDING\",\n        \"createdAt\": \"2025-09-24T12:14:54.768\",\n        \"sentAt\": null,\n        \"readAt\": null\n    },\n    {\n        \"id\": \"68d1c5ddab6f72d237675ede\",\n        \"type\": \"USER_REGISTERED\",\n        \"userId\": \"user-456\",\n        \"email\": \"test@example.com\",\n        \"title\": \"You're welcome!\",\n        \"message\": \"Thanks for registering.\",\n        \"channels\": [\n            \"email\",\n            \"discord\",\n            \"push\"\n        ],\n        \"data\": null,\n        \"status\": \"PENDING\",\n        \"createdAt\": \"2025-09-23T00:55:41.935\",\n        \"sentAt\": null,\n        \"readAt\": null\n    },\n    {\n        \"id\": \"68d1c57dd0900449ee15469f\",\n        \"type\": \"USER_REGISTERED\",\n        \"userId\": \"user-456\",\n        \"email\": \"test@example.com\",\n        \"title\": \"You're welcome!\",\n        \"message\": \"Thanks for registering.\",\n        \"channels\": [\n            \"email\",\n            \"discord\",\n            \"push\"\n        ],\n        \"data\": null,\n        \"status\": \"PENDING\",\n        \"createdAt\": \"2025-09-23T00:54:05.089\",\n        \"sentAt\": null,\n        \"readAt\": null\n    }\n]"
+						}
+					]
+				},
+				{
+					"name": "PUT /notifications/status",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"notificationId\": \"68d3b866adc4837f7252e293\",\n    \"status\": \"READ\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{notificationsvc_base}}/notifications/status",
+							"host": [
+								"{{notificationsvc_base}}"
+							],
+							"path": [
+								"notifications",
+								"status"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "PUT /notifications/status",
+							"originalRequest": {
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"notificationId\": \"68d3b866adc4837f7252e293\",\n    \"status\": \"READ\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{notificationsvc_base}}/notifications/status",
+									"host": [
+										"{{notificationsvc_base}}"
+									],
+									"path": [
+										"notifications",
+										"status"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": null,
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								},
+								{
+									"key": "Transfer-Encoding",
+									"value": "chunked"
+								},
+								{
+									"key": "Date",
+									"value": "Wed, 24 Sep 2025 09:30:42 GMT"
+								},
+								{
+									"key": "Keep-Alive",
+									"value": "timeout=60"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"id\": \"68d3b866adc4837f7252e293\",\n    \"type\": \"USER_REGISTERED\",\n    \"userId\": \"user-456\",\n    \"email\": \"test@example.com\",\n    \"title\": \"You're welcome!\",\n    \"message\": \"Thanks for registering.\",\n    \"channels\": [\n        \"email\",\n        \"discord\",\n        \"push\"\n    ],\n    \"data\": null,\n    \"status\": \"READ\",\n    \"createdAt\": \"2025-09-24T12:22:45.998\",\n    \"sentAt\": null,\n    \"readAt\": \"2025-09-24T12:30:42.615383\"\n}"
+						}
+					]
+				}
+			]
+		}
+	]
+}
