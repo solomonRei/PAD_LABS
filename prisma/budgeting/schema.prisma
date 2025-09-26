@@ -1,0 +1,95 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Partner {
+  id            String   @id @default(cuid())
+  name          String   @unique
+  type          String              // 'corporate' | 'individual' | 'ngo'
+  contactEmail  String?
+  contactPhone  String?
+  status        String   @default("active") // 'active' | 'inactive' | 'suspended'
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  totalDonated  Decimal  @default(0)
+  donationCount Int      @default(0)
+
+  donations     Donation[]
+}
+
+model Donation {
+  id            String   @id @default(cuid())
+  // куда идёт поток: 'FAFCab' | 'FAFNGO'
+  org           String
+  // кто источник: 'FAF' | 'Partner'
+  origin        String
+  // партнёр (если origin = 'Partner')
+  partnerId     String?
+  partner       Partner? @relation(fields: [partnerId], references: [id], onDelete: SetNull)
+
+  amount        Decimal
+  currency      String   @default("USD")
+  receivedAt    DateTime @default(now())
+  note          String   @default("")
+  // уникальный ID транзакции (для идемпотентности)
+  transactionId String?  @unique
+  status        String   @default("confirmed") // 'confirmed' | 'pending' | 'cancelled'
+  createdVia    String   @default("manual")    // 'webhook' | 'manual'
+  microserviceId String?
+}
+
+model Expense {
+  id            String   @id @default(cuid())
+  // куда идёт расход: 'FAFCab' | 'FAFNGO'
+  org           String
+  category      String
+  amount        Decimal
+  currency      String   @default("USD")
+  paidAt        DateTime @default(now())
+  note          String   @default("")
+  transactionId String?  @unique
+  status        String   @default("confirmed")
+  createdVia    String   @default("manual")
+  microserviceId String?
+  receiptUrl    String?
+}
+
+model Debt {
+  id         String   @id @default(cuid())
+  offender   String
+  reason     String
+  amount     Decimal
+  currency   String   @default("USD")
+  createdAt  DateTime @default(now())
+  status     String   @default("open") // 'open' | 'settled'
+  settledAt  DateTime?
+}
+
+model BalanceSnapshot {
+  id             String   @id @default(cuid())
+  source         String   // 'FAFCab' | 'FAFNGO' | 'Total'
+  totalDonations Decimal
+  totalExpenses  Decimal
+  balance        Decimal
+  createdAt      DateTime @default(now())
+  period         String   // 'daily' | 'weekly' | 'monthly' | 'yearly'
+}
+
+model TransactionLog {
+  id           String   @id @default(cuid())
+  operationType String   // 'donation' | 'expense' | 'debt_created' | 'debt_settled' | ...
+  relatedId    String
+  source       String?
+  amount       Decimal?
+  currency     String   @default("USD")
+  description  String
+  createdAt    DateTime @default(now())
+  performedBy  String?
+  ipAddress    String?
+  userAgent    String?
+}

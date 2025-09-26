@@ -32,8 +32,8 @@ The FAF Cab Management Platform is a comprehensive microservices-based system de
 | Fund Raising Service    | `https://hub.docker.com/repository/docker/nidelcue/fund-raising-svc`            |
 | Sharing Service         | `https://hub.docker.com/repository/docker/nidelcue/pad-sharing-svc`             |
 | Budgeting Service       | `https://hub.docker.com/repository/docker/mithancik/pad-budgeting-service`      |
-| Cab Booking Service     |                                                                                 |
-| Check-in Service        |                                                                                 |
+| Cab Booking Service     | `https://hub.docker.com/repository/docker/kira9999/cab-booking-service`         |
+| Check-in Service        | `https://hub.docker.com/repository/docker/kira9999/check-in-service/general`    |
 | Tea Management Service  | `https://hub.docker.com/repository/docker/smeloved/pad-tea-svc`                 |
 
 ### External Integrations
