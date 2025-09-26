@@ -1,0 +1,311 @@
+{
+  "info": {
+    "name": "Lost&Found Service (Express + Prisma)",
+    "_postman_id": "0ba55faa-000d-4080-8652-7bcbfe1f4d6b",
+    "description": "Postman collection for testing the Lost&Found Service.\n\nEndpoints covered:\n- POST /posts\n- GET /posts (with filters)\n- GET /posts/:id (with comments)\n- POST /posts/:id/comments\n- GET /posts/:id/comments\n- PATCH /posts/:id/resolve",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3001"
+    },
+    {
+      "key": "author",
+      "value": "John Doe"
+    },
+    {
+      "key": "postId",
+      "value": ""
+    },
+    {
+      "key": "commentId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Posts",
+      "item": [
+        {
+          "name": "Create Post",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Found iPhone 15\",\n  \"description\": \"Black, found in park, in case\",\n  \"type\": \"found\",\n  \"author\": \"{{author}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/posts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "posts"
+              ]
+            },
+            "description": "Create a lost/found post. Saves the created post's id to {{postId}}."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 201\", function () { pm.response.to.have.status(201); });",
+                  "pm.test(\"Response has id\", function () { pm.expect(pm.response.json()).to.have.property(\"id\"); });",
+                  "pm.collectionVariables.set(\"postId\", pm.response.json().id);",
+                  "pm.collectionVariables.set(\"author\", pm.response.json().author || \"John Doe\");"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Posts (all)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/posts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "posts"
+              ]
+            },
+            "description": "Get all posts ordered by createdAt desc."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Response is array\", function () { pm.expect(pm.response.json()).to.be.an(\"array\"); });",
+                  "// If none created this run, grab first id (if any)",
+                  "const arr = pm.response.json();",
+                  "if (arr.length > 0 && !pm.collectionVariables.get(\"postId\")) { pm.collectionVariables.set(\"postId\", arr[0].id); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Posts (filter by type & resolved)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/posts?type=found&resolved=false",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "posts"
+              ],
+              "query": [
+                {
+                  "key": "type",
+                  "value": "found"
+                },
+                {
+                  "key": "resolved",
+                  "value": "false"
+                }
+              ]
+            },
+            "description": "Demonstrates query filters."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Post by ID (with comments)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/posts/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "posts",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{postId}}",
+                  "description": "Post ID"
+                }
+              ]
+            },
+            "description": "Fetch a single post and its comments."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Has comments array\", function () { pm.expect(pm.response.json()).to.have.property(\"comments\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Resolve Post (PATCH)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"author\": \"{{author}}\",\n  \"resolved\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/posts/:id/resolve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "posts",
+                ":id",
+                "resolve"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{postId}}"
+                }
+              ]
+            },
+            "description": "Mark a post as resolved. Requires matching author."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"resolved = true\", function () { pm.expect(pm.response.json().resolved).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Comments",
+      "item": [
+        {
+          "name": "Add Comment to Post",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"This is my phone! How can I contact you?\",\n  \"author\": \"Jane Smith\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/posts/:id/comments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "posts",
+                ":id",
+                "comments"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{postId}}"
+                }
+              ]
+            },
+            "description": "Create a comment for the given post. Saves comment id to {{commentId}}."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 201\", function () { pm.response.to.have.status(201); });",
+                  "pm.test(\"Response has id\", function () { pm.expect(pm.response.json()).to.have.property(\"id\"); });",
+                  "pm.collectionVariables.set(\"commentId\", pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Comments for Post",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/posts/:id/comments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "posts",
+                ":id",
+                "comments"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{postId}}"
+                }
+              ]
+            },
+            "description": "List all comments for a post."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Response is array\", function () { pm.expect(pm.response.json()).to.be.an(\"array\"); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
