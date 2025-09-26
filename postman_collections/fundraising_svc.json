@@ -1,0 +1,225 @@
+{
+	"info": {
+		"_postman_id": "d42e5e10-c8fd-44c6-adcd-5fe721a1a141",
+		"name": "Fundraising Service",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "29413694"
+	},
+	"item": [
+		{
+			"name": "List Fundraisers",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/fundraisers/",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"fundraisers",
+						""
+					]
+				}
+			},
+			"response": [
+				{
+					"name": "New Request",
+					"originalRequest": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/fundraisers/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"fundraisers",
+								""
+							]
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"_postman_previewlanguage": "json",
+					"header": [
+						{
+							"key": "date",
+							"value": "Wed, 24 Sep 2025 13:28:22 GMT"
+						},
+						{
+							"key": "server",
+							"value": "uvicorn"
+						},
+						{
+							"key": "content-length",
+							"value": "360"
+						},
+						{
+							"key": "content-type",
+							"value": "application/json"
+						}
+					],
+					"cookie": [],
+					"body": "[\n    {\n        \"id\": 1,\n        \"title\": \"New Board Games\",\n        \"purpose\": \"Purchase board games for student lounge\",\n        \"description\": \"We want fun games for everyone\",\n        \"target_amount\": 500,\n        \"collected_amount\": 0,\n        \"created_by\": \"admin1\",\n        \"deadline\": \"2025-12-31T23:59:59+00:00\",\n        \"status\": \"active\",\n        \"donations\": [],\n        \"progress_percentage\": 0,\n        \"remaining_amount\": 500,\n        \"time_left_seconds\": 8505096.253744\n    }\n]"
+				}
+			]
+		},
+		{
+			"name": "Create Fundraiser",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"title\": \"Help for school\",\r\n  \"description\": \"Raising money for books\",\r\n  \"goal\": 500\r\n}\r\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/fundraisers/",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"fundraisers",
+						""
+					]
+				}
+			},
+			"response": [
+				{
+					"name": "New Request",
+					"originalRequest": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"title\": \"New Board Games\",\r\n  \"purpose\": \"Purchase board games for student lounge\",\r\n  \"description\": \"We want fun games for everyone\",\r\n  \"target_amount\": 500,\r\n  \"created_by\": \"admin1\",\r\n  \"deadline\": \"2025-12-31T23:59:59\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/fundraisers/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"fundraisers",
+								""
+							]
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"_postman_previewlanguage": "json",
+					"header": [
+						{
+							"key": "date",
+							"value": "Wed, 24 Sep 2025 13:28:17 GMT"
+						},
+						{
+							"key": "server",
+							"value": "uvicorn"
+						},
+						{
+							"key": "content-length",
+							"value": "272"
+						},
+						{
+							"key": "content-type",
+							"value": "application/json"
+						}
+					],
+					"cookie": [],
+					"body": "{\n    \"id\": 1,\n    \"title\": \"New Board Games\",\n    \"purpose\": \"Purchase board games for student lounge\",\n    \"description\": \"We want fun games for everyone\",\n    \"target_amount\": 500,\n    \"collected_amount\": 0,\n    \"created_by\": \"admin1\",\n    \"deadline\": \"2025-12-31T23:59:59+00:00\",\n    \"status\": \"active\",\n    \"donations\": []\n}"
+				}
+			]
+		},
+		{
+			"name": "Donate to Fundraiser",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"user\": \"john\",\r\n  \"amount\": 100\r\n}\r\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/fundraisers/1/donate",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"fundraisers",
+						"1",
+						"donate"
+					]
+				}
+			},
+			"response": [
+				{
+					"name": "New Request",
+					"originalRequest": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"user\": \"john\",\r\n  \"amount\": 100\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/fundraisers/1/donate",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"fundraisers",
+								"1",
+								"donate"
+							]
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"_postman_previewlanguage": "json",
+					"header": [
+						{
+							"key": "date",
+							"value": "Wed, 24 Sep 2025 13:28:27 GMT"
+						},
+						{
+							"key": "server",
+							"value": "uvicorn"
+						},
+						{
+							"key": "content-length",
+							"value": "304"
+						},
+						{
+							"key": "content-type",
+							"value": "application/json"
+						}
+					],
+					"cookie": [],
+					"body": "{\n    \"id\": 1,\n    \"title\": \"New Board Games\",\n    \"purpose\": \"Purchase board games for student lounge\",\n    \"description\": \"We want fun games for everyone\",\n    \"target_amount\": 500,\n    \"collected_amount\": 100,\n    \"created_by\": \"admin1\",\n    \"deadline\": \"2025-12-31T23:59:59+00:00\",\n    \"status\": \"active\",\n    \"donations\": [\n        {\n            \"user\": \"john\",\n            \"amount\": 100\n        }\n    ]\n}"
+				}
+			]
+		}
+	]
+}
