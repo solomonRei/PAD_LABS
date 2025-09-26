@@ -1,0 +1,660 @@
+{
+	"info": {
+		"_postman_id": "pad-tea-svc-collection",
+		"name": "PAD Tea Service API",
+		"description": "Complete API collection for PAD Tea Service with mock data examples",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8080",
+			"type": "string"
+		},
+		{
+			"key": "apiVersion",
+			"value": "v1",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "Health Check",
+			"item": [
+				{
+					"name": "Health Status",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/actuator/health",
+							"host": ["{{baseUrl}}"],
+							"path": ["actuator", "health"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Items",
+			"item": [
+				{
+					"name": "Get All Items",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/teasvc/api/{{apiVersion}}/items",
+							"host": ["{{baseUrl}}"],
+							"path": ["teasvc", "api", "{{apiVersion}}", "items"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Items - Low Stock Only",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/teasvc/api/{{apiVersion}}/items?lowStockOnly=true",
+							"host": ["{{baseUrl}}"],
+							"path": ["teasvc", "api", "{{apiVersion}}", "items"],
+							"query": [
+								{
+									"key": "lowStockOnly",
+									"value": "true"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Search Items by Name",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/teasvc/api/{{apiVersion}}/items?q=coffee",
+							"host": ["{{baseUrl}}"],
+							"path": ["teasvc", "api", "{{apiVersion}}", "items"],
+							"query": [
+								{
+									"key": "q",
+									"value": "coffee"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Active Items Only",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/teasvc/api/{{apiVersion}}/items?active=true",
+							"host": ["{{baseUrl}}"],
+							"path": ["teasvc", "api", "{{apiVersion}}", "items"],
+							"query": [
+								{
+									"key": "active",
+									"value": "true"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Item by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/teasvc/api/{{apiVersion}}/items/{{itemId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["teasvc", "api", "{{apiVersion}}", "items", "{{itemId}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create New Item - Regular",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-Idempotency-Key",
+								"value": "create-item-{{$timestamp}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Green Tea\",\n  \"category\": \"Beverages\",\n  \"unit\": \"pcs\",\n  \"isExpensive\": false,\n  \"unitPrice\": null,\n  \"isActive\": true\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/teasvc/api/{{apiVersion}}/items",
+							"host": ["{{baseUrl}}"],
+							"path": ["teasvc", "api", "{{apiVersion}}", "items"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create New Item - Expensive",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-Idempotency-Key",
+								"value": "create-expensive-item-{{$timestamp}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Premium Coffee Beans\",\n  \"category\": \"Beverages\",\n  \"unit\": \"g\",\n  \"isExpensive\": true,\n  \"unitPrice\": 0.05,\n  \"isActive\": true\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/teasvc/api/{{apiVersion}}/items",
+							"host": ["{{baseUrl}}"],
+							"path": ["teasvc", "api", "{{apiVersion}}", "items"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Item",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Updated Tea Name\",\n  \"category\": \"Beverages\",\n  \"unit\": \"pcs\",\n  \"isExpensive\": false,\n  \"unitPrice\": null,\n  \"isActive\": true\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/teasvc/api/{{apiVersion}}/items/{{itemId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["teasvc", "api", "{{apiVersion}}", "items", "{{itemId}}"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Thresholds",
+			"item": [
+				{
+					"name": "Get All Thresholds",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/teasvc/api/{{apiVersion}}/thresholds",
+							"host": ["{{baseUrl}}"],
+							"path": ["teasvc", "api", "{{apiVersion}}", "thresholds"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Thresholds by Item ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/teasvc/api/{{apiVersion}}/thresholds?itemId={{itemId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["teasvc", "api", "{{apiVersion}}", "thresholds"],
+							"query": [
+								{
+									"key": "itemId",
+									"value": "{{itemId}}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Enabled Thresholds Only",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/teasvc/api/{{apiVersion}}/thresholds?enabled=true",
+							"host": ["{{baseUrl}}"],
+							"path": ["teasvc", "api", "{{apiVersion}}", "thresholds"],
+							"query": [
+								{
+									"key": "enabled",
+									"value": "true"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create/Update Threshold",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"itemId\": \"{{itemId}}\",\n  \"lowStockQty\": 10.00,\n  \"enabled\": true\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/teasvc/api/{{apiVersion}}/thresholds",
+							"host": ["{{baseUrl}}"],
+							"path": ["teasvc", "api", "{{apiVersion}}", "thresholds"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Alerts",
+			"item": [
+				{
+					"name": "Get All Alerts",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/teasvc/api/{{apiVersion}}/alerts",
+							"host": ["{{baseUrl}}"],
+							"path": ["teasvc", "api", "{{apiVersion}}", "alerts"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Open Alerts",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/teasvc/api/{{apiVersion}}/alerts?status=OPEN",
+							"host": ["{{baseUrl}}"],
+							"path": ["teasvc", "api", "{{apiVersion}}", "alerts"],
+							"query": [
+								{
+									"key": "status",
+									"value": "OPEN"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Low Stock Alerts",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/teasvc/api/{{apiVersion}}/alerts?type=LOW_STOCK",
+							"host": ["{{baseUrl}}"],
+							"path": ["teasvc", "api", "{{apiVersion}}", "alerts"],
+							"query": [
+								{
+									"key": "type",
+									"value": "LOW_STOCK"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Alerts by Item ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/teasvc/api/{{apiVersion}}/alerts?itemId={{itemId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["teasvc", "api", "{{apiVersion}}", "alerts"],
+							"query": [
+								{
+									"key": "itemId",
+									"value": "{{itemId}}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Alerts by User ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/teasvc/api/{{apiVersion}}/alerts?subjectUserId=1001",
+							"host": ["{{baseUrl}}"],
+							"path": ["teasvc", "api", "{{apiVersion}}", "alerts"],
+							"query": [
+								{
+									"key": "subjectUserId",
+									"value": "1001"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Stock Management",
+			"item": [
+				{
+					"name": "Receive Stock",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-Idempotency-Key",
+								"value": "receive-stock-{{$timestamp}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"itemId\": \"{{itemId}}\",\n  \"qty\": 50.00,\n  \"unitPrice\": 0.10,\n  \"receivedAt\": \"2025-09-26T00:00:00Z\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/teasvc/api/{{apiVersion}}/stocks/receive",
+							"host": ["{{baseUrl}}"],
+							"path": ["teasvc", "api", "{{apiVersion}}", "stocks", "receive"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Adjust Stock - Increase",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-Idempotency-Key",
+								"value": "adjust-stock-increase-{{$timestamp}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"itemId\": \"{{itemId}}\",\n  \"delta\": 25.00,\n  \"reason\": \"Found additional stock in storage\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/teasvc/api/{{apiVersion}}/stocks/adjust",
+							"host": ["{{baseUrl}}"],
+							"path": ["teasvc", "api", "{{apiVersion}}", "stocks", "adjust"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Adjust Stock - Decrease",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-Idempotency-Key",
+								"value": "adjust-stock-decrease-{{$timestamp}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"itemId\": \"{{itemId}}\",\n  \"delta\": -5.00,\n  \"reason\": \"Damaged items removed\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/teasvc/api/{{apiVersion}}/stocks/adjust",
+							"host": ["{{baseUrl}}"],
+							"path": ["teasvc", "api", "{{apiVersion}}", "stocks", "adjust"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Consumption",
+			"item": [
+				{
+					"name": "Record Consumption",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-Idempotency-Key",
+								"value": "consume-{{$timestamp}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"userId\": 1001,\n  \"itemId\": \"{{itemId}}\",\n  \"qty\": 2.00,\n  \"correlationId\": \"consume-tea-{{$timestamp}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/teasvc/api/{{apiVersion}}/consumption",
+							"host": ["{{baseUrl}}"],
+							"path": ["teasvc", "api", "{{apiVersion}}", "consumption"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Record Consumption - Expensive Item",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-Idempotency-Key",
+								"value": "consume-expensive-{{$timestamp}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"userId\": 1002,\n  \"itemId\": \"{{expensiveItemId}}\",\n  \"qty\": 1.00,\n  \"correlationId\": \"consume-coffee-{{$timestamp}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/teasvc/api/{{apiVersion}}/consumption",
+							"host": ["{{baseUrl}}"],
+							"path": ["teasvc", "api", "{{apiVersion}}", "consumption"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Mock Data Examples",
+			"item": [
+				{
+					"name": "Get Sample Item IDs",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/teasvc/api/{{apiVersion}}/items",
+							"host": ["{{baseUrl}}"],
+							"path": ["teasvc", "api", "{{apiVersion}}", "items"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Test Complete Workflow",
+					"item": [
+						{
+							"name": "1. Create New Item",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "X-Idempotency-Key",
+										"value": "workflow-test-{{$timestamp}}"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"name\": \"Test Item\",\n  \"category\": \"Test\",\n  \"unit\": \"pcs\",\n  \"isExpensive\": false,\n  \"unitPrice\": null,\n  \"isActive\": true\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/teasvc/api/{{apiVersion}}/items",
+									"host": ["{{baseUrl}}"],
+									"path": ["teasvc", "api", "{{apiVersion}}", "items"]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "2. Set Threshold for Item",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"itemId\": \"{{itemId}}\",\n  \"lowStockQty\": 5.00,\n  \"enabled\": true\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/teasvc/api/{{apiVersion}}/thresholds",
+									"host": ["{{baseUrl}}"],
+									"path": ["teasvc", "api", "{{apiVersion}}", "thresholds"]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "3. Receive Initial Stock",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "X-Idempotency-Key",
+										"value": "initial-stock-{{$timestamp}}"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"itemId\": \"{{itemId}}\",\n  \"qty\": 20.00,\n  \"unitPrice\": 0.50,\n  \"receivedAt\": \"2025-09-26T00:00:00Z\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/teasvc/api/{{apiVersion}}/stocks/receive",
+									"host": ["{{baseUrl}}"],
+									"path": ["teasvc", "api", "{{apiVersion}}", "stocks", "receive"]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "4. Consume Some Items",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "X-Idempotency-Key",
+										"value": "consume-workflow-{{$timestamp}}"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"userId\": 2001,\n  \"itemId\": \"{{itemId}}\",\n  \"qty\": 3.00,\n  \"correlationId\": \"workflow-consume-{{$timestamp}}\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/teasvc/api/{{apiVersion}}/consumption",
+									"host": ["{{baseUrl}}"],
+									"path": ["teasvc", "api", "{{apiVersion}}", "consumption"]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "5. Check Low Stock Alert",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/teasvc/api/{{apiVersion}}/alerts?itemId={{itemId}}&status=OPEN",
+									"host": ["{{baseUrl}}"],
+									"path": ["teasvc", "api", "{{apiVersion}}", "alerts"],
+									"query": [
+										{
+											"key": "itemId",
+											"value": "{{itemId}}"
+										},
+										{
+											"key": "status",
+											"value": "OPEN"
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		}
+	]
+}
