@@ -7,7 +7,7 @@ services:
     environment:
       POSTGRES_DB: ${USER_SVC_DB_NAME}
       POSTGRES_USER: ${USER_SVC_DB_USER}
-      POSTGRES_PASSWORD: ${USER_SVC_DB_PASSWORD}
+      POSTGRES_PASFSWORD: ${USER_SVC_DB_PASSWORD}
       PGDATA: /var/lib/postgresql/data
     volumes:
       - usersvc_postgres_data:/var/lib/postgresql/data
@@ -283,8 +283,8 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_HOST: sharing-postgres
-      POSTGRES_PORT: 5435
-      PGDATA: /var/lib/postgresql/data
+      POSTGRES_PORT: 5432
+      PGDATA: /var/lib/postgresql/data add
     volumes:
       - sharing_postgres_data:/var/lib/postgresql/data
       - ./db-init/sharing.sql:/docker-entrypoint-initdb.d/001-sharing.sql:ro
@@ -307,7 +307,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_HOST: sharing-postgres
-      POSTGRES_PORT: 5435
+      POSTGRES_PORT: 5432
     ports:
       - "8087:8001"
     networks:
