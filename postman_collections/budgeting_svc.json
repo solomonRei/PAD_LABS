@@ -1,0 +1,1018 @@
+{
+  "info": {
+    "name": "Budgeting Service (Express + Prisma)",
+    "_postman_id": "4b0a912a-67c1-44b8-9276-10f3c442dfdc",
+    "description": "Postman collection to test the Budgeting Service endpoints.\n\nCovers:\n- Balance (realtime, snapshots)\n- Donations (CRUD + webhook)\n- Expenses (CRUD + webhook)\n- Debts (CRUD + settle)\n- Partners (list/create)\n- Journal (filtered)\n- CSV export",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3002"
+    },
+    {
+      "key": "org",
+      "value": "FAFCab"
+    },
+    {
+      "key": "origin",
+      "value": "FAF"
+    },
+    {
+      "key": "donationId",
+      "value": ""
+    },
+    {
+      "key": "expenseId",
+      "value": ""
+    },
+    {
+      "key": "debtId",
+      "value": ""
+    },
+    {
+      "key": "partnerId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Finance / Balance",
+      "item": [
+        {
+          "name": "Realtime balance (all orgs)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/balance/realtime",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "balance",
+                "realtime"
+              ]
+            },
+            "description": "Returns balances for FAFCab & FAFNGO and summary."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json(); pm.expect(json).to.have.property(\"timestamp\");"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Realtime balance (single org)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/balance/realtime?org={{org}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "balance",
+                "realtime"
+              ],
+              "query": [
+                {
+                  "key": "org",
+                  "value": "{{org}}"
+                }
+              ]
+            },
+            "description": "Balance for a specific org."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Donations",
+      "item": [
+        {
+          "name": "Create donation (origin=FAF)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"org\": \"{{org}}\",\n  \"origin\": \"FAF\",\n  \"amount\": 120.5,\n  \"currency\": \"USD\",\n  \"note\": \"Initial donation\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/donations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "donations"
+              ]
+            },
+            "description": "Creates a confirmed donation and stores its id."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"201 Created\", () => pm.response.to.have.status(201));",
+                  "const j = pm.response.json(); pm.expect(j).to.have.property(\"id\");",
+                  "pm.collectionVariables.set(\"donationId\", pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create donation (origin=Partner using partnerName)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"org\": \"{{org}}\",\n  \"origin\": \"Partner\",\n  \"partnerName\": \"Acme Corp\",\n  \"amount\": 200,\n  \"currency\": \"USD\",\n  \"note\": \"Partner donation\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/donations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "donations"
+              ]
+            },
+            "description": "Creates partner if needed, increments stats."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"201 Created\", () => pm.response.to.have.status(201));",
+                  "const j = pm.response.json(); if (j.partner && j.partner.id) { pm.collectionVariables.set(\"partnerId\", j.partner.id); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List donations (optional filters)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/donations?org={{org}}&origin={{origin}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "donations"
+              ],
+              "query": [
+                {
+                  "key": "org",
+                  "value": "{{org}}"
+                },
+                {
+                  "key": "origin",
+                  "value": "{{origin}}"
+                }
+              ]
+            },
+            "description": "Lists donations ordered by receivedAt desc."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "const arr = pm.response.json(); pm.expect(arr).to.be.an(\"array\");",
+                  "if (arr.length && !pm.collectionVariables.get(\"donationId\")) { pm.collectionVariables.set(\"donationId\", arr[0].id); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get donation by id",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/donations/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "donations",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{donationId}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update donation (PATCH)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"note\": \"Updated note via Postman\",\n  \"status\": \"confirmed\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/donations/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "donations",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{donationId}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete donation",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/donations/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "donations",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{donationId}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"204 No Content\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Webhook: donation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"org\": \"{{org}}\",\n  \"origin\": \"FAF\",\n  \"amount\": 55,\n  \"currency\": \"USD\",\n  \"note\": \"Webhook donation\",\n  \"transactionId\": \"txn-c52b06a1-9b1b-4e5b-a1f2-c2d3281631f5\",\n  \"microserviceId\": \"svc-budget\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/webhook/donation",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "webhook",
+                "donation"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Expenses",
+      "item": [
+        {
+          "name": "Create expense",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"org\": \"{{org}}\",\n  \"category\": \"fuel\",\n  \"amount\": 35.75,\n  \"currency\": \"USD\",\n  \"note\": \"Taxi fuel\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/expenses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "expenses"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"201 Created\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"expenseId\", pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List expenses (optional org)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/expenses?org={{org}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "expenses"
+              ],
+              "query": [
+                {
+                  "key": "org",
+                  "value": "{{org}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get expense by id",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/expenses/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "expenses",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{expenseId}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update expense (PATCH)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"note\": \"Updated expense note\",\n  \"receiptUrl\": \"https://example.com/receipt/123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/expenses/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "expenses",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{expenseId}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete expense",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/expenses/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "expenses",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{expenseId}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"204 No Content\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Webhook: expense",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"org\": \"{{org}}\",\n  \"category\": \"logistics\",\n  \"amount\": 88.9,\n  \"currency\": \"USD\",\n  \"note\": \"Webhook expense\",\n  \"transactionId\": \"txn-e380b82c-4ae1-440e-af1b-45b35f6e5651\",\n  \"microserviceId\": \"svc-budget\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/webhook/expense",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "webhook",
+                "expense"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Debts",
+      "item": [
+        {
+          "name": "Create debt",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"offender\": \"John Driver\",\n  \"reason\": \"Lost receipt\",\n  \"amount\": 30,\n  \"currency\": \"USD\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/debts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "debts"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"201 Created\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"debtId\", pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List debts",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/debts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "debts"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get debt by id",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/debts/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "debts",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{debtId}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update debt (PATCH)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"settled\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/debts/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "debts",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{debtId}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Settle debt (shortcut)",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/debts/:id/settle",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "debts",
+                ":id",
+                "settle"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{debtId}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Partners",
+      "item": [
+        {
+          "name": "Create partner",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Acme Corp\",\n  \"type\": \"corporate\",\n  \"contactEmail\": \"donations@acme.test\",\n  \"contactPhone\": \"+1 555 0100\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/partners",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "partners"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"201 Created\", () => pm.response.to.have.status(201));",
+                  "const j = pm.response.json(); if (j.id) pm.collectionVariables.set(\"partnerId\", j.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List partners (top by totalDonated)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/partners?status=active&type=corporate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "partners"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "active"
+                },
+                {
+                  "key": "type",
+                  "value": "corporate"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reports & Journal",
+      "item": [
+        {
+          "name": "Journal (filtered + summary)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/journal?org={{org}}&type=all&origin={{origin}}&limit=50",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "journal"
+              ],
+              "query": [
+                {
+                  "key": "org",
+                  "value": "{{org}}"
+                },
+                {
+                  "key": "type",
+                  "value": "all"
+                },
+                {
+                  "key": "origin",
+                  "value": "{{origin}}"
+                },
+                {
+                  "key": "limit",
+                  "value": "50"
+                }
+              ]
+            },
+            "description": "Uses the enhanced /journal route with summary."
+          }
+        },
+        {
+          "name": "Journal (date range)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/journal?from=2025-01-01&to=2025-12-31&type=all&limit=100",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "journal"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "2025-01-01"
+                },
+                {
+                  "key": "to",
+                  "value": "2025-12-31"
+                },
+                {
+                  "key": "type",
+                  "value": "all"
+                },
+                {
+                  "key": "limit",
+                  "value": "100"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "CSV export (donations)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/reports/csv?type=donations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reports",
+                "csv"
+              ],
+              "query": [
+                {
+                  "key": "type",
+                  "value": "donations"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "CSV export (expenses)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/reports/csv?type=expenses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reports",
+                "csv"
+              ],
+              "query": [
+                {
+                  "key": "type",
+                  "value": "expenses"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "CSV export (debts)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/reports/csv?type=debts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reports",
+                "csv"
+              ],
+              "query": [
+                {
+                  "key": "type",
+                  "value": "debts"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "CSV export (journal)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/reports/csv?type=journal",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reports",
+                "csv"
+              ],
+              "query": [
+                {
+                  "key": "type",
+                  "value": "journal"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Balance Snapshots",
+      "item": [
+        {
+          "name": "Create balance snapshots (daily)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"period\": \"daily\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/balance/snapshots/create",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "balance",
+                "snapshots",
+                "create"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get balance snapshots (Total, last 10)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/balance/snapshots?source=Total&period=daily&limit=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "balance",
+                "snapshots"
+              ],
+              "query": [
+                {
+                  "key": "source",
+                  "value": "Total"
+                },
+                {
+                  "key": "period",
+                  "value": "daily"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

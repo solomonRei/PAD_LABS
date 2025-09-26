@@ -23,18 +23,18 @@ The FAF Cab Management Platform is a comprehensive microservices-based system de
 
 
 ### Docker Hub
-| Service                 | Docker Hub Url                                                          |
-| ----------------------- |-------------------------------------------------------------------------|
-| User Management Service | `https://hub.docker.com/repository/docker/laineer/pad-user-svc`         |
-| Notification Service    | `https://hub.docker.com/repository/docker/laineer/pad-notification-svc` |
-| Communication Service   |                                                                         |
-| Lost & Found Service    |                                                                         |
-| Fund Raising Service    |                                                                         |
-| Sharing Service         |                                                                         |
-| Budgeting Service       |                                                                         |
-| Cab Booking Service     |                                                                         |
-| Check-in Service        |                                                                         |
-| Tea Management Service  |                                                                         |
+| Service                 | Docker Hub Url                                                                  |
+| ----------------------- |---------------------------------------------------------------------------------|
+| User Management Service | `https://hub.docker.com/repository/docker/laineer/pad-user-svc`                 |
+| Notification Service    | `https://hub.docker.com/repository/docker/laineer/pad-notification-svc`         |
+| Communication Service   | `https://hub.docker.com/repository/docker/smeloved/pad-communication-svc`       |
+| Lost & Found Service    | `https://hub.docker.com/repository/docker/mithancik/pad-lost-and-found-service` |
+| Fund Raising Service    | `https://hub.docker.com/repository/docker/nidelcue/fund-raising-svc`            |
+| Sharing Service         | `https://hub.docker.com/repository/docker/nidelcue/pad-sharing-svc`             |
+| Budgeting Service       | `https://hub.docker.com/repository/docker/mithancik/pad-budgeting-service`      |
+| Cab Booking Service     | `https://hub.docker.com/repository/docker/kira9999/cab-booking-service`         |
+| Check-in Service        | `https://hub.docker.com/repository/docker/kira9999/check-in-service/general`    |
+| Tea Management Service  | `https://hub.docker.com/repository/docker/smeloved/pad-tea-svc`                 |
 
 ### External Integrations
 

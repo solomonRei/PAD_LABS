@@ -8,14 +8,15 @@ services:
       POSTGRES_DB: ${USER_SVC_DB_NAME}
       POSTGRES_USER: ${USER_SVC_DB_USER}
       POSTGRES_PASSWORD: ${USER_SVC_DB_PASSWORD}
+      PGDATA: /var/lib/postgresql/data
     volumes:
-      - ./postgres-auth:/data/postgres
+      - usersvc_postgres_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - "5432:5432"   # usersvc Postgres
     networks:
       - pad-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-pad_user} -d ${DB_NAME:-pad_users}"]
+      test: ["CMD-SHELL", "pg_isready -U ${USER_SVC_DB_USER} -d ${USER_SVC_DB_NAME}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -26,18 +27,19 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: prod
       SERVER_PORT: ${USER_SVC_SERVER_PORT:-8080}
-      SPRING_DATASOURCE_URL: jdbc:postgresql://usersvc-postgres:5432/${USER_SVC_DB_NAME}
-      SPRING_DATASOURCE_USERNAME: ${USER_SVC_SPRING_DATASOURCE_USERNAME}
-      SPRING_DATASOURCE_PASSWORD: ${USER_SVC_SPRING_DATASOURCE_PASSWORD}
-      DISCORD_CLIENT_ID: ${USER_SVC_DISCORD_CLIENT_ID}
-      DISCORD_CLIENT_SECRET: ${USER_SVC_DISCORD_CLIENT_SECRET}
-      DISCORD_BOT_TOKEN: ${USER_SVC_DISCORD_BOT_TOKEN}
-      FAF_GUILD_ID: ${USER_SVC_FAF_GUILD_ID}
-      JWT_SECRET: ${USER_SVC_JWT_SECRET}
-      JWT_TTL_MINUTES: ${USER_SVC_JWT_TTL_MINUTES}
-      SPRING_JPA_HIBERNATE_DDL_AUTO: ${USER_SVC_SPRING_JPA_HIBERNATE_DDL_AUTO}
+      USER_SVC_SPRING_DATASOURCE_URL: jdbc:postgresql://usersvc-postgres:5432/${USER_SVC_DB_NAME}
+      USER_SVC_SPRING_DATASOURCE_USERNAME: ${USER_SVC_DB_USERNAME}
+      USER_SVC_SPRING_DATASOURCE_PASSWORD: ${USER_SVC_DB_PASSWORD}
+      USER_SVC_DISCORD_CLIENT_ID: ${USER_SVC_DISCORD_CLIENT_ID}
+      USER_SVC_DISCORD_CLIENT_SECRET: ${USER_SVC_DISCORD_CLIENT_SECRET}
+      USER_SVC_DISCORD_BOT_TOKEN: ${USER_SVC_DISCORD_BOT_TOKEN}
+      USER_SVC_FAF_GUILD_ID: ${USER_SVC_FAF_GUILD_ID}
+      USER_SVC_JWT_SECRET: ${USER_SVC_JWT_SECRET}
+      USER_SVC_JWT_TTL_MINUTES: ${USER_SVC_JWT_TTL_MINUTES}
+      USER_SVC_SPRING_JPA_HIBERNATE_DDL_AUTO: ${USER_SVC_SPRING_JPA_HIBERNATE_DDL_AUTO}
+      USER_SVC_APP_DATA_INITIALIZE: ${USER_SVC_APP_DATA_INITIALIZE:-true}
     ports:
-      - "${USER_SVC_EXTERNAL_PORT:-8080}:${SERVER_PORT:-8080}"
+      - "${USER_SVC_EXTERNAL_PORT:-8080}:${USER_SVC_SERVER_PORT:-8080}"
     networks:
       - pad-network
     depends_on:
@@ -64,20 +66,379 @@ services:
       NOTIFICATION_SVC_MONGO_URI: ${NOTIFICATION_SVC_MONGO_URI}
       NOTIFICATION_SVC_MONGO_DATABASE: ${NOTIFICATION_SVC_MONGO_DATABASE}
     ports:
-      - "${NOTIFICATION_SVC_SERVER_PORT:-8080}:${NOTIFICATION_SVC_SERVER_PORT:-8080}"
+      - "8081:8080"
     networks:
       - pad-network
     restart: unless-stopped
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8080/notificationsvc/api/v1/health" ]
+      test: [ "CMD", "curl", "-f", "http://localhost:${NOTIFICATION_SVC_SERVER_PORT:-8080}/notificationsvc/api/v1/health" ]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
 
+  tea_service_postgres:
+    container_name: tea_service_postgres
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ${TEA_SVC_DB_NAME}
+      POSTGRES_USER: ${TEA_SVC_SPRING_DATASOURCE_USERNAME}
+      POSTGRES_PASSWORD: ${TEA_SVC_SPRING_DATASOURCE_PASSWORD}
+      PGDATA: /var/lib/postgresql/data
+    volumes:
+      - teasvc_postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    command: -p 5432
+    restart: always
+    networks:
+      - pad-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${TEA_SVC_SPRING_DATASOURCE_USERNAME} -d ${TEA_SVC_DB_NAME}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  tea-service:
+    image: smeloved/pad-tea-svc:latest
+    container_name: pad-tea-service
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      TEA_SVC_SERVER_PORT: ${TEA_SVC_SERVER_PORT:-8084}
+      TEA_SVC_SPRING_DATASOURCE_URL: jdbc:postgresql://tea_service_postgres:5432/${TEA_SVC_DB_NAME}
+      TEA_SVC_SPRING_DATASOURCE_USERNAME: ${TEA_SVC_SPRING_DATASOURCE_USERNAME}
+      TEA_SVC_SPRING_DATASOURCE_PASSWORD: ${TEA_SVC_SPRING_DATASOURCE_PASSWORD}
+      TEA_SVC_SPRING_JPA_HIBERNATE_DDL_AUTO: ${TEA_SVC_SPRING_JPA_HIBERNATE_DDL_AUTO:-validate}
+      TEA_SVC_DATA_SEEDER_RUN: ${TEA_SVC_DATA_SEEDER_RUN:-false}
+    ports:
+      - "8082:8084"
+    networks:
+      - pad-network
+    depends_on:
+      tea_service_postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${TEA_SVC_SERVER_PORT:-8084}/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  communication-service:
+    image: smeloved/pad-communication-svc:latest
+    container_name: pad-communication-service
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      COMMUNICATION_SVC_SERVER_PORT: ${COMMUNICATION_SVC_SERVER_PORT:-8085}
+      COMMUNICATION_SVC_MONGO_URI: ${COMMUNICATION_SVC_MONGO_URI}
+      COMMUNICATION_SVC_MONGO_DATABASE: ${COMMUNICATION_SVC_MONGO_DATABASE}
+      COMMUNICATION_SVC_DATA_SEEDER_RUN: ${COMMUNICATION_SVC_DATA_SEEDER_RUN:-false}
+    ports:
+      - "8083:8085"
+    networks:
+      - pad-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${COMMUNICATION_SVC_SERVER_PORT:-8085}/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  budgeting-service:
+    image: mithancik/pad-budgeting-service:latest
+    container_name: budgeting-service
+    user: "0:0"
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: ${BUDGETING_SVC_SERVER_PORT}
+      DATABASE_URL: ${BUDGETING_SVC_DATABASE_URL}
+      PRISMA_CLI_BINARY_TARGETS: ${PRISMA_CLI_BINARY_TARGETS:-linux-musl,linux-glibc}
+      PRISMA_ENGINES_DIR: /tmp/prisma-engines
+    volumes:
+      - ./prisma/budgeting:/app/prisma/budgeting
+    command: >-
+      /bin/sh -c '
+      set -e;
+      SCHEMA="";
+      if [ -f /app/prisma/budgeting/schema.prisma ]; then SCHEMA=/app/prisma/budgeting/schema.prisma; fi;
+      if [ -z "$SCHEMA" ] && [ -f /usr/src/app/prisma/budgeting/schema.prisma ]; then SCHEMA=/usr/src/app/prisma/budgeting/schema.prisma; fi;
+      if [ -z "$SCHEMA" ] && [ -f ./prisma/budgeting/schema.prisma ]; then SCHEMA=./prisma/budgeting/schema.prisma; fi;
+      if [ -z "$SCHEMA" ]; then echo "Prisma schema not found for budgeting-service" && ls -lah /app || true && ls -lah /usr/src/app || true && exit 1; fi;
+      mkdir -p /tmp/prisma-engines;
+      npx prisma generate --schema="$SCHEMA";
+      node src/app.js'
+    ports:
+      - "8084:3000"
+    networks:
+      - pad-network
+
+  budgeting-sqlite:
+    image: keinos/sqlite3
+    container_name: budgeting-sqlite
+    stdin_open: true
+    tty: true
+    volumes:
+      - ./prisma/budgeting:/app/prisma/budgeting
+    working_dir: /app/prisma/budgeting
+    command: ["sqlite3", "dev.db"]
+    networks:
+      - pad-network
+
+  lost-and-found-service:
+    image: mithancik/pad-budgeting-service:latest
+    container_name: lost-and-found-service
+    user: "0:0"
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: ${LOST_AND_FOUND_SVC_SERVER_PORT}
+      DATABASE_URL: ${LOST_AND_FOUND_SVC_DATABASE_URL}
+      PRISMA_CLI_BINARY_TARGETS: ${PRISMA_CLI_BINARY_TARGETS:-linux-musl,linux-glibc}
+      PRISMA_ENGINES_DIR: /tmp/prisma-engines
+    volumes:
+      - ./prisma/lost-and-found:/app/prisma/lost-and-found
+    command: >-
+      /bin/sh -c '
+      set -e;
+      SCHEMA="";
+      # Preferred: mounted nested path
+      if [ -f /app/prisma/lost-and-found/schema.prisma ]; then SCHEMA=/app/prisma/lost-and-found/schema.prisma; fi;
+      # Fallback: image has prisma at /app/prisma
+      if [ -z "$SCHEMA" ] && [ -f /app/prisma/schema.prisma ]; then SCHEMA=/app/prisma/schema.prisma; fi;
+      # Fallbacks: relative to workdir
+      if [ -z "$SCHEMA" ] && [ -f ./prisma/lost-and-found/schema.prisma ]; then SCHEMA=./prisma/lost-and-found/schema.prisma; fi;
+      if [ -z "$SCHEMA" ] && [ -f ./prisma/schema.prisma ]; then SCHEMA=./prisma/schema.prisma; fi;
+      if [ -z "$SCHEMA" ]; then echo "Prisma schema not found for lost-and-found-service" && ls -lah /app || true && exit 1; fi;
+      mkdir -p /tmp/prisma-engines;
+      npx prisma generate --schema="$SCHEMA";
+      node src/app.js'
+    ports:
+      - "8085:3000"
+    networks:
+      - pad-network
+
+  lost-and-found-service-sqlite:
+    image: keinos/sqlite3
+    container_name: lost-and-found-sqlite
+    stdin_open: true
+    tty: true
+    volumes:
+      - ./prisma/lost-and-found:/app/prisma/lost-and-found
+    working_dir: /app/prisma/lost-and-found
+    command: ["sqlite3", "dev.db"]
+    networks:
+      - pad-network
+
+  # === Fundraising stack ===
+  fundraising-postgres:
+    container_name: fundraising-postgres
+    image: postgres:16
+    environment:
+      POSTGRES_DB: sharing
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_HOST: fundraising-postgres
+      PGDATA: /var/lib/postgresql/data
+    volumes:
+      - fundraising_postgres_data:/var/lib/postgresql/data
+      - ./db-init/fundraising.sql:/docker-entrypoint-initdb.d/001-fundraising.sql:ro
+    ports:
+      - "5434:5432"
+    restart: always
+    networks:
+      - pad-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  fundraising-service:
+    image: nidelcue/pad-sharing-svc
+    container_name: fundraising-service
+    environment:
+      POSTGRES_DB: sharing
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_HOST: fundraising-postgres
+      POSTGRES_PORT: 5435
+    ports:
+      - "8086:8000"
+    networks:
+      - pad-network
+    depends_on:
+      fundraising-postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # === Sharing stack ===
+  sharing-postgres:
+    container_name: sharing-postgres
+    image: postgres:16
+    environment:
+      POSTGRES_DB: sharing
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_HOST: sharing-postgres
+      POSTGRES_PORT: 5435
+      PGDATA: /var/lib/postgresql/data
+    volumes:
+      - sharing_postgres_data:/var/lib/postgresql/data
+      - ./db-init/sharing.sql:/docker-entrypoint-initdb.d/001-sharing.sql:ro
+    ports:
+      - "5435:5432"
+    restart: always
+    networks:
+      - pad-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  sharing-service:
+    image: nidelcue/pad-sharing-svc:latest
+    container_name: sharing-service
+    environment:
+      POSTGRES_DB: sharing
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_HOST: sharing-postgres
+      POSTGRES_PORT: 5435
+    ports:
+      - "8087:8001"
+    networks:
+      - pad-network
+    depends_on:
+      sharing-postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # === Cab booking stack ===
+  cabsvc-postgres:
+    image: postgres:15-alpine
+    container_name: cabsvc-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-cabsvc}
+      PGDATA: /var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_PORT:-5436}:5432"
+    volumes:
+      - cabsvc_postgres_data:/var/lib/postgresql/data
+    networks:
+      - pad-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  cab-booking-service:
+    image: ${DOCKER_HUB_USERNAME:-kira9999}/cab-booking-service:${VERSION:-latest}
+    container_name: cab-booking-service
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=${DATABASE_URL:-postgresql+asyncpg://postgres:postgres@cabsvc-postgres:5432/cabsvc}
+      - JWT_ALG=${JWT_ALG:-HS256}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_ISS=${JWT_ISS:-faf-user-svc}
+      - JWT_REQUIRED_ROLE=${JWT_REQUIRED_ROLE:-Calendar}
+      - GCAL_ENABLED=${GCAL_ENABLED:-true}
+      - GCAL_CALENDAR_ID=${GCAL_CALENDAR_ID:-e504816eb0c5ab7fcb30961f804f48fc6f5915a2d15b49518cd493950f30895d@group.calendar.google.com}
+      - GCAL_SERVICE_ACCOUNT_JSON_PATH=${GCAL_SERVICE_ACCOUNT_JSON_PATH:-/secrets/modular-robot-454517-h5-f072d30d2647.json}
+      - APP_HOST=${APP_HOST:-0.0.0.0}
+      - APP_PORT=${APP_PORT:-8000}
+    depends_on:
+      cabsvc-postgres:
+        condition: service_healthy
+    ports:
+      - "${APP_PORT:-8088}:8000"
+    volumes:
+      - ./secrets:/secrets:ro
+    networks:
+      - pad-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  mongo:
+    image: mongo:6
+    container_name: check-in-mongo
+    restart: unless-stopped
+    ports:
+      - '27018:27017'
+    volumes:
+      - mongo-data:/data/db
+    environment:
+      - MONGO_INITDB_DATABASE=checkinsvc
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+    networks:
+      - pad-network
+
+  check-in-service:
+    image: ${DOCKER_USERNAME:-kira9999}/check-in-service:${VERSION:-latest}
+    container_name: check-in-service
+    restart: unless-stopped
+    ports:
+      - '8012:8012'
+    environment:
+      - MONGO_URI=mongodb://mongo:27017
+      - MONGO_DB=checkinsvc
+      - SERVICE_NAME=check-in-service
+      - BASE_PATH=/checkinsvc/api/v1
+      - LOG_LEVEL=INFO
+      - TIMEZONE=UTC
+    depends_on:
+      mongo:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8012/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - pad-network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+
 volumes:
-  postgres_data:
+  usersvc_postgres_data:
     driver: local
+  teasvc_postgres_data:
+    driver: local
+  fundraising_postgres_data:
+    driver: local
+  sharing_postgres_data:
+    driver: local
+  cabsvc_postgres_data:
+    driver: local
+  mongo-data:
+    driver: local
+
 
 networks:
   pad-network:
