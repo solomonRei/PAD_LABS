@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  postgres:
+  usersvc-postgres:
     image: postgres:15-alpine
     container_name: usersvc-postgres
     environment:
@@ -43,7 +43,7 @@ services:
     networks:
       - pad-network
     depends_on:
-      postgres:
+      usersvc-postgres:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
@@ -146,88 +146,60 @@ services:
       retries: 3
       start_period: 40s
 
-  budgeting-service:
-    image: mithancik/pad-budgeting-service:latest
-    container_name: budgeting-service
-    user: "0:0"
+  lost-and-found-service:
+    image: mithancik/pad-lost-and-found-service:latest
+    container_name: lost-and-found-service
     restart: unless-stopped
     environment:
       NODE_ENV: production
-      PORT: ${BUDGETING_SVC_SERVER_PORT}
-      DATABASE_URL: ${BUDGETING_SVC_DATABASE_URL}
-      PRISMA_CLI_BINARY_TARGETS: ${PRISMA_CLI_BINARY_TARGETS:-linux-musl,linux-glibc}
-      PRISMA_ENGINES_DIR: /tmp/prisma-engines
+      PORT: 3000
+      DATABASE_URL: "file:/app/prisma/dev.db"
     volumes:
-      - ./prisma/budgeting:/app/prisma/budgeting
-    command: >-
-      /bin/sh -c '
-      set -e;
-      SCHEMA="";
-      if [ -f /app/prisma/budgeting/schema.prisma ]; then SCHEMA=/app/prisma/budgeting/schema.prisma; fi;
-      if [ -z "$SCHEMA" ] && [ -f /usr/src/app/prisma/budgeting/schema.prisma ]; then SCHEMA=/usr/src/app/prisma/budgeting/schema.prisma; fi;
-      if [ -z "$SCHEMA" ] && [ -f ./prisma/budgeting/schema.prisma ]; then SCHEMA=./prisma/budgeting/schema.prisma; fi;
-      if [ -z "$SCHEMA" ]; then echo "Prisma schema not found for budgeting-service" && ls -lah /app || true && ls -lah /usr/src/app || true && exit 1; fi;
-      mkdir -p /tmp/prisma-engines;
-      npx prisma generate --schema="$SCHEMA";
-      node src/app.js'
+      - /Users/esmelov/IdeaProjects/PAD_LABS/prisma/lost-and-found:/app/prisma
     ports:
-      - "8084:3000"
+      - "3000:3000"
     networks:
       - pad-network
 
+  lost-and-found-sqlite:
+    image: keinos/sqlite3
+    container_name: lost-and-found-sqlite
+    stdin_open: true
+    tty: true
+    volumes:
+      - /Users/esmelov/IdeaProjects/PAD_LABS/prisma/lost-and-found:/app/prisma
+    working_dir: /app/prisma
+    command: ["sqlite3", "dev.db"]
+    networks:
+      - pad-network
+
+  # --- BUDGETING API ---
+  budgeting-service:
+    image: mithancik/pad-budgeting-service:latest
+    container_name: budgeting-service
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DATABASE_URL: "file:/app/prisma/dev.db"
+    volumes:
+      - /Users/esmelov/IdeaProjects/PAD_LABS/prisma/budgeting:/app/prisma
+    ports:
+      - "3001:3001"
+    networks:
+      - pad-network
+    depends_on:
+      - lost-and-found-service
+
+  # SQLite CLI для budgeting
   budgeting-sqlite:
     image: keinos/sqlite3
     container_name: budgeting-sqlite
     stdin_open: true
     tty: true
     volumes:
-      - ./prisma/budgeting:/app/prisma/budgeting
-    working_dir: /app/prisma/budgeting
-    command: ["sqlite3", "dev.db"]
-    networks:
-      - pad-network
-
-  lost-and-found-service:
-    image: mithancik/pad-budgeting-service:latest
-    container_name: lost-and-found-service
-    user: "0:0"
-    restart: unless-stopped
-    environment:
-      NODE_ENV: production
-      PORT: ${LOST_AND_FOUND_SVC_SERVER_PORT}
-      DATABASE_URL: ${LOST_AND_FOUND_SVC_DATABASE_URL}
-      PRISMA_CLI_BINARY_TARGETS: ${PRISMA_CLI_BINARY_TARGETS:-linux-musl,linux-glibc}
-      PRISMA_ENGINES_DIR: /tmp/prisma-engines
-    volumes:
-      - ./prisma/lost-and-found:/app/prisma/lost-and-found
-    command: >-
-      /bin/sh -c '
-      set -e;
-      SCHEMA="";
-      # Preferred: mounted nested path
-      if [ -f /app/prisma/lost-and-found/schema.prisma ]; then SCHEMA=/app/prisma/lost-and-found/schema.prisma; fi;
-      # Fallback: image has prisma at /app/prisma
-      if [ -z "$SCHEMA" ] && [ -f /app/prisma/schema.prisma ]; then SCHEMA=/app/prisma/schema.prisma; fi;
-      # Fallbacks: relative to workdir
-      if [ -z "$SCHEMA" ] && [ -f ./prisma/lost-and-found/schema.prisma ]; then SCHEMA=./prisma/lost-and-found/schema.prisma; fi;
-      if [ -z "$SCHEMA" ] && [ -f ./prisma/schema.prisma ]; then SCHEMA=./prisma/schema.prisma; fi;
-      if [ -z "$SCHEMA" ]; then echo "Prisma schema not found for lost-and-found-service" && ls -lah /app || true && exit 1; fi;
-      mkdir -p /tmp/prisma-engines;
-      npx prisma generate --schema="$SCHEMA";
-      node src/app.js'
-    ports:
-      - "8085:3000"
-    networks:
-      - pad-network
-
-  lost-and-found-service-sqlite:
-    image: keinos/sqlite3
-    container_name: lost-and-found-sqlite
-    stdin_open: true
-    tty: true
-    volumes:
-      - ./prisma/lost-and-found:/app/prisma/lost-and-found
-    working_dir: /app/prisma/lost-and-found
+      - /Users/esmelov/IdeaProjects/PAD_LABS/prisma/budgeting:/app/prisma
+    working_dir: /app/prisma
     command: ["sqlite3", "dev.db"]
     networks:
       - pad-network
@@ -241,6 +213,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_HOST: fundraising-postgres
+      POSTGRES_PORT: 5432
       PGDATA: /var/lib/postgresql/data
     volumes:
       - fundraising_postgres_data:/var/lib/postgresql/data
@@ -257,14 +230,14 @@ services:
       retries: 5
 
   fundraising-service:
-    image: nidelcue/pad-sharing-svc
+    image: nidelcue/fund-raising-svc:latest
     container_name: fundraising-service
     environment:
       POSTGRES_DB: sharing
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_HOST: fundraising-postgres
-      POSTGRES_PORT: 5435
+      POSTGRES_PORT: 5432
     ports:
       - "8086:8000"
     networks:
@@ -283,8 +256,8 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_HOST: sharing-postgres
-      POSTGRES_PORT: 5435
-      PGDATA: /var/lib/postgresql/data
+      POSTGRES_PORT: 5432
+      PGDATA: /var/lib/postgresql/data add
     volumes:
       - sharing_postgres_data:/var/lib/postgresql/data
       - ./db-init/sharing.sql:/docker-entrypoint-initdb.d/001-sharing.sql:ro
@@ -307,7 +280,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_HOST: sharing-postgres
-      POSTGRES_PORT: 5435
+      POSTGRES_PORT: 5432
     ports:
       - "8087:8001"
     networks:
@@ -438,6 +411,8 @@ volumes:
     driver: local
   mongo-data:
     driver: local
+  lost_and_found_db: { }
+  budgeting_db: { }
 
 
 networks:
