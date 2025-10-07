@@ -9,7 +9,7 @@ The FAF Cab Management Platform is a comprehensive microservices-based system de
 ### Core Services
 
 | Service                 | Base Path                  | Description                                                |
-| ----------------------- | -------------------------- | ---------------------------------------------------------- |
+| ----------------------- |----------------------------| ---------------------------------------------------------- |
 | User Management Service | `/userservicesvc/api/v1`   | User authentication, authorization, and profile management |
 | Notification Service    | `/notificationsvc/api/v1`  | Multi-channel notification delivery system                 |
 | Communication Service   | `/communicationsvc/api/v1` | Real-time messaging and chat functionality                 |
@@ -21,20 +21,20 @@ The FAF Cab Management Platform is a comprehensive microservices-based system de
 | Check-in Service        | `/checkinsvc/api/v1`       | Access control and attendance tracking                     |
 | Tea Management Service  | `/teasvc/api/v1`           | Inventory management for consumables                       |
 
-### Docker Hub
 
+### Docker Hub
 | Service                 | Docker Hub Url                                                                  |
-| ----------------------- | ------------------------------------------------------------------------------- |
+| ----------------------- |---------------------------------------------------------------------------------|
 | User Management Service | `https://hub.docker.com/repository/docker/laineer/pad-user-svc`                 |
 | Notification Service    | `https://hub.docker.com/repository/docker/laineer/pad-notification-svc`         |
-| Communication Service   | `https://hub.docker.com/repository/docker/mithancik/pad-budgeting-service`      |
+| Communication Service   | `https://hub.docker.com/repository/docker/smeloved/pad-communication-svc`       |
 | Lost & Found Service    | `https://hub.docker.com/repository/docker/mithancik/pad-lost-and-found-service` |
-| Fund Raising Service    |                                                                                 |
-| Sharing Service         |                                                                                 |
-| Budgeting Service       |                                                                                 |
-| Cab Booking Service     |                                                                                 |
-| Check-in Service        |                                                                                 |
-| Tea Management Service  |                                                                                 |
+| Fund Raising Service    | `https://hub.docker.com/repository/docker/nidelcue/fund-raising-svc`            |
+| Sharing Service         | `https://hub.docker.com/repository/docker/nidelcue/pad-sharing-svc`             |
+| Budgeting Service       | `https://hub.docker.com/repository/docker/mithancik/pad-budgeting-service`      |
+| Cab Booking Service     | `https://hub.docker.com/repository/docker/kira9999/cab-booking-service`         |
+| Check-in Service        | `https://hub.docker.com/repository/docker/kira9999/check-in-service/general`    |
+| Tea Management Service  | `https://hub.docker.com/repository/docker/smeloved/pad-tea-svc`                 |
 
 ### External Integrations
 
@@ -272,13 +272,11 @@ The platform follows a **database-per-service** pattern where each microservice 
 The following sections detail the HTTP API contracts for each service, including base paths, endpoints, required headers, request/response bodies, and query parameters. All data shapes conform to the provided JSON specification.
 
 ---
-
 ## User Management Service
 
 Base Path: `/usersvc/api/v1`
 
 **NOTE**
-
 - All authenticated endpoints expect header: `Authorization: Bearer <JWT>`.
 - Idempotent creates require header: `X-Idempotency-Key: <unique-key>`.
 
@@ -287,17 +285,14 @@ Base Path: `/usersvc/api/v1`
 ### Endpoints
 
 #### Authentication: Discord OAuth2 Login
-
 - **METHOD:** GET
 - **PATH:** `/auth/discord/login`
 - **BEHAVIOR:** Redirects to Discord OAuth2; after success the service issues a JWT (flow-specific).
 
 #### Get Current User (Me)
-
 - **METHOD:** GET
 - **PATH:** `/me`
 - **RESPONSE (200):**
-
 ```json
 {
   "id": "uuid",
@@ -311,7 +306,6 @@ Base Path: `/usersvc/api/v1`
 ```
 
 #### Logout
-
 - **METHOD:** POST
 - **PATH:** `/logout`
 - **RESPONSE:** `204 No Content`
@@ -319,12 +313,10 @@ Base Path: `/usersvc/api/v1`
 ---
 
 #### Create User
-
 - **METHOD:** POST
 - **PATH:** `/users`
 - **HEADERS:** `X-Idempotency-Key`
 - **REQUEST BODY:**
-
 ```json
 {
   "email": "a@b.com",
@@ -333,9 +325,7 @@ Base Path: `/usersvc/api/v1`
   "discordId": null
 }
 ```
-
 - **RESPONSE (201):**
-
 ```json
 {
   "id": "uuid",
@@ -348,11 +338,9 @@ Base Path: `/usersvc/api/v1`
 ```
 
 #### Get User by ID
-
 - **METHOD:** GET
 - **PATH:** `/users/{id}`
 - **RESPONSE (200):**
-
 ```json
 {
   "id": "uuid",
@@ -366,14 +354,12 @@ Base Path: `/usersvc/api/v1`
 ```
 
 #### List Users
-
 - **METHOD:** GET
 - **PATH:** `/users`
 - **QUERY PARAMETERS:**
-  - `email` (exact match)
-  - `q` (free-text by name/email)
+  - `email`  (exact match)
+  - `q`      (free-text by name/email)
 - **RESPONSE (200):**
-
 ```json
 [
   {
@@ -386,11 +372,9 @@ Base Path: `/usersvc/api/v1`
 ```
 
 #### Update User
-
 - **METHOD:** PATCH
 - **PATH:** `/users/{id}`
 - **REQUEST BODY (standard fields):**
-
 ```json
 {
   "name": "New",
@@ -398,18 +382,14 @@ Base Path: `/usersvc/api/v1`
   "discordId": "12345"
 }
 ```
-
 - **REQUEST BODY (admin-only fields, optional):**
-
 ```json
 {
   "email": "updated@example.com",
   "enabled": true
 }
 ```
-
 - **RESPONSE (200):**
-
 ```json
 {
   "id": "uuid",
@@ -422,7 +402,6 @@ Base Path: `/usersvc/api/v1`
 ```
 
 #### Soft Delete (Disable) User
-
 - **METHOD:** DELETE
 - **PATH:** `/users/{id}`
 - **AUTHZ:** ADMIN
@@ -432,12 +411,10 @@ Base Path: `/usersvc/api/v1`
 ---
 
 #### Create Guest
-
 - **METHOD:** POST
 - **PATH:** `/guests`
 - **HEADERS:** `X-Idempotency-Key`
 - **REQUEST BODY (minimum):**
-
 ```json
 {
   "name": "Guest John",
@@ -445,9 +422,7 @@ Base Path: `/usersvc/api/v1`
   "validUntil": "iso"
 }
 ```
-
 - **REQUEST BODY (optional extras, for compatibility):**
-
 ```json
 {
   "faceId": "face_12345",
@@ -455,9 +430,7 @@ Base Path: `/usersvc/api/v1`
   "permanent": false
 }
 ```
-
 - **RESPONSE (201):**
-
 ```json
 {
   "id": "uuid",
@@ -469,11 +442,9 @@ Base Path: `/usersvc/api/v1`
 ```
 
 #### Get Guest by ID
-
 - **METHOD:** GET
 - **PATH:** `/guests/{id}`
 - **RESPONSE (200):**
-
 ```json
 {
   "id": "uuid",
@@ -486,11 +457,9 @@ Base Path: `/usersvc/api/v1`
 ```
 
 #### Generate Guest Token
-
 - **METHOD:** POST
 - **PATH:** `/guests/{id}/token`
 - **RESPONSE (200):**
-
 ```json
 {
   "token": "jwt",
@@ -501,12 +470,10 @@ Base Path: `/usersvc/api/v1`
 ---
 
 #### Send Notification
-
 - **METHOD:** POST
 - **PATH:** `/notifications`
 - **HEADERS:** `X-Idempotency-Key`
 - **REQUEST BODY (application/json):**
-
 ```json
 {
   "recipient": {
@@ -522,9 +489,7 @@ Base Path: `/usersvc/api/v1`
   "channels": ["email", "discord", "push"]
 }
 ```
-
 - **RESPONSE (202):**
-
 ```json
 {
   "notificationId": "uuid",
@@ -535,12 +500,10 @@ Base Path: `/usersvc/api/v1`
 ---
 
 #### Admin: Refresh Roles from Discord
-
 - **METHOD:** POST
 - **PATH:** `/roles/refresh/{userId}`
 - **AUTHZ:** ADMIN
 - **RESPONSE (200):**
-
 ```json
 {
   "id": "uuid",
@@ -549,11 +512,9 @@ Base Path: `/usersvc/api/v1`
   "source": "discord"
 }
 ```
-
 ---
 
 ---
-
 ## Notification Service
 
 Base Path: `/notificationsvc/api/v1`
@@ -561,13 +522,11 @@ Base Path: `/notificationsvc/api/v1`
 ### Endpoints
 
 #### Send Notification (queue)
-
 - **METHOD:** POST
 - **PATH:** `/notifications`
-- **HEADERS:** `Content-Type: application/json` _(опционально: `X-Idempotency-Key`)_
+- **HEADERS:** `Content-Type: application/json` *(опционально: `X-Idempotency-Key`)*
 - **COMMENT:** Queue a notification (template + data) to one or more channels.
 - **REQUEST BODY:**
-
 ```json
 {
   "recipient": { "userId": "uuid", "email": null, "discordId": null },
@@ -575,9 +534,7 @@ Base Path: `/notificationsvc/api/v1`
   "channels": ["email", "discord", "push"]
 }
 ```
-
 - **RESPONSE (202):**
-
 ```json
 {
   "notificationId": "uuid",
@@ -588,12 +545,10 @@ Base Path: `/notificationsvc/api/v1`
 ---
 
 #### Get Notification by ID (status)
-
 - **METHOD:** GET
 - **PATH:** `/notifications/{id}`
 - **COMMENT:** Get delivery status for a previously queued notification.
 - **RESPONSE (200):**
-
 ```json
 {
   "notificationId": "uuid",
@@ -605,21 +560,17 @@ Base Path: `/notificationsvc/api/v1`
 ---
 
 #### List Notifications
-
 - **METHOD:** GET
 - **PATH:** `/notifications`
 - **COMMENT:** List notifications by user. Optional filter by status.
 - **QUERY PARAMETERS:**
-
 ```json
 {
   "userId": "string (required)",
   "status": "PENDING|SENT|DELIVERED|READ|FAILED (optional)"
 }
 ```
-
 - **RESPONSE (200):**
-
 ```json
 [
   {
@@ -641,21 +592,17 @@ Base Path: `/notificationsvc/api/v1`
 ---
 
 #### Update Notification Status
-
 - **METHOD:** PUT
 - **PATH:** `/notifications/status`
 - **COMMENT:** Update notification status.
 - **REQUEST BODY:**
-
 ```json
 {
   "notificationId": "string",
   "status": "SENT|DELIVERED|READ|FAILED"
 }
 ```
-
 - **RESPONSE (200):**
-
 ```json
 {
   "id": "uuid",
@@ -664,7 +611,6 @@ Base Path: `/notificationsvc/api/v1`
   "readAt": null
 }
 ```
-
 ---
 
 ## Communication Service

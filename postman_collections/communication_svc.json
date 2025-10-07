@@ -1,0 +1,235 @@
+{
+  "info": {
+    "name": "PAD Communication SVC - v1",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "c6b8f3b7-6f4a-4a2f-9b83-7b2b5f9899f0"
+  },
+  "item": [
+    {
+      "name": "Setup",
+      "item": [
+        {
+          "name": "Get Chats (store chatId)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{basePath}}/chats?limit=5",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "{{basePath}}",
+                "chats"
+              ],
+              "query": [
+                {"key": "limit", "value": "5"}
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "const arr = pm.response.json();",
+                  "if (Array.isArray(arr) && arr.length > 0) {",
+                  "  const chatId = arr[0].chatId || arr[0].id;",
+                  "  if (chatId) { pm.environment.set('chatId', chatId); }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Chats",
+      "item": [
+        {
+          "name": "Create Chat",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "X-Idempotency-Key", "value": "{{idempotencyKey}}"}
+            ],
+            "url": {
+              "raw": "{{baseUrl}}{{basePath}}/chats",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{basePath}}", "chats"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"General\",\n  \"memberIds\": [\n    \"{{userA}}\",\n    \"{{userB}}\"\n  ],\n  \"userId\": \"{{adminUserId}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', function () { pm.response.to.have.status(201); });",
+                  "const obj = pm.response.json();",
+                  "if (obj && obj.chatId) { pm.environment.set('chatId', obj.chatId); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Chats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{basePath}}/chats?limit=20&offset=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{basePath}}", "chats"],
+              "query": [
+                {"key": "limit", "value": "20"},
+                {"key": "offset", "value": "0"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Chat",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{basePath}}/chats/{{chatId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{basePath}}", "chats", "{{chatId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Chat",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "url": {
+              "raw": "{{baseUrl}}{{basePath}}/chats/{{chatId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{basePath}}", "chats", "{{chatId}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"General Updated\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Chat",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{basePath}}/chats/{{chatId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{basePath}}", "chats", "{{chatId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Messages",
+      "item": [
+        {
+          "name": "Post Message",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "X-Idempotency-Key", "value": "{{idempotencyKey}}"}
+            ],
+            "url": {
+              "raw": "{{baseUrl}}{{basePath}}/chats/{{chatId}}/messages",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{basePath}}", "chats", "{{chatId}}", "messages"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"authorId\": \"{{userA}}\",\n  \"text\": \"Hello team!\"\n}"
+            }
+          }
+        },
+        {
+          "name": "List Messages",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{basePath}}/chats/{{chatId}}/messages?limit=50",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{basePath}}", "chats", "{{chatId}}", "messages"],
+              "query": [
+                {"key": "limit", "value": "50"}
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Bans",
+      "item": [
+        {
+          "name": "Create Ban (admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "X-Idempotency-Key", "value": "{{idempotencyKey}}"},
+              {"key": "X-User-Id", "value": "{{adminUserId}}"}
+            ],
+            "url": {
+              "raw": "{{baseUrl}}{{basePath}}/chats/bans",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{basePath}}", "chats", "bans"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{userB}}\",\n  \"reason\": \"spam\",\n  \"until\": null\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Ban Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{basePath}}/chats/bans/{{userB}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{basePath}}", "chats", "bans", "{{userB}}"]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "function genUUID(){return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){var r=Math.random()*16|0,v=c=='x'?r:(r&0x3|0x8);return v.toString(16);});}",
+          "if (!pm.environment.get('idempotencyKey')) { pm.environment.set('idempotencyKey', genUUID()); }"
+        ]
+      }
+    }
+  ]
+}
+
+

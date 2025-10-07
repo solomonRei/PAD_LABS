@@ -1,0 +1,28 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Post {
+  id          String     @id @default(cuid())
+  title       String
+  description String     @default("")
+  type        String     // "lost" or "found"
+  author      String     @default("anonymous")
+  createdAt   DateTime   @default(now())
+  resolved    Boolean    @default(false)
+  comments    Comment[]
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  text      String
+  author    String   @default("anonymous")
+  createdAt DateTime @default(now())
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId    String
+}
