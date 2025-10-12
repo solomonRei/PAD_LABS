@@ -53,6 +53,74 @@ services:
       retries: 3
       start_period: 40s
 
+  gateway-redis:
+    image: redis:7-alpine
+    container_name: pad-gateway-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    volumes:
+      - gateway_redis_data:/data
+    networks:
+      - pad-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  gateway-service:
+    image: smeloved/pad-gateway-svc:latest
+    container_name: pad-gateway-service
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      GATEWAY_SVC_SERVER_PORT: 9090
+      SPRING_REDIS_HOST: gateway-redis
+      SPRING_REDIS_PORT: 6379
+      GATEWAY_SVC_SPRING_DATASOURCE_URL: jdbc:postgresql://usersvc-postgres:5432/${USER_SVC_DB_NAME}
+      GATEWAY_SVC_SPRING_DATASOURCE_USERNAME: ${USER_SVC_DB_USERNAME}
+      GATEWAY_SVC_SPRING_DATASOURCE_PASSWORD: ${USER_SVC_DB_PASSWORD}
+      DISCORD_CLIENT_ID: ${USER_SVC_DISCORD_CLIENT_ID}
+      DISCORD_CLIENT_SECRET: ${USER_SVC_DISCORD_CLIENT_SECRET}
+      DISCORD_BOT_TOKEN: ${USER_SVC_DISCORD_BOT_TOKEN}
+      DISCORD_GUILD_ID: ${USER_SVC_FAF_GUILD_ID}
+      JWT_SECRET: ${USER_SVC_JWT_SECRET}
+      JWT_TTL_MINUTES: ${USER_SVC_JWT_TTL_MINUTES:-120}
+      CORS_ALLOWED_ORIGINS: ${GATEWAY_CORS_ALLOWED_ORIGINS:-http://localhost:3000,https://yourdomain.com}
+      GATEWAY_TIMEOUT_MS: ${GATEWAY_TIMEOUT_MS:-30000}
+      GATEWAY_MAX_CONCURRENT_REQUESTS: ${GATEWAY_MAX_CONCURRENT_REQUESTS:-100}
+      CACHE_TTL_MINUTES: ${GATEWAY_CACHE_TTL_MINUTES:-10}
+      # Downstream Services URLs (Docker internal network)
+      USER_SERVICE_URL: http://user-service:8080
+      NOTIFICATION_SERVICE_URL: http://notification-service:8080
+      COMMUNICATION_SERVICE_URL: http://communication-service:8085
+      LOSTFOUND_SERVICE_URL: http://lost-and-found-service:3000
+      FUNDRAISING_SERVICE_URL: http://fundraising-service:8000
+      SHARING_SERVICE_URL: http://sharing-service:8001
+      BUDGETING_SERVICE_URL: http://budgeting-service:3001
+      CABBOOKING_SERVICE_URL: http://cab-booking-service:8000
+      CHECKIN_SERVICE_URL: http://check-in-service:8012
+      TEA_SERVICE_URL: http://tea-service:8084
+    ports:
+      - "9090:9090"
+    networks:
+      - pad-network
+    depends_on:
+      gateway-redis:
+        condition: service_healthy
+      usersvc-postgres:
+        condition: service_healthy
+      user-service:
+        condition: service_started
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9090/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
   notification-service:
     image: laineer/pad-notification-svc:latest
     container_name: pad-notification-service
@@ -400,6 +468,8 @@ services:
 
 volumes:
   usersvc_postgres_data:
+    driver: local
+  gateway_redis_data:
     driver: local
   teasvc_postgres_data:
     driver: local
