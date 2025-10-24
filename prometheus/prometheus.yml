@@ -1,0 +1,69 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # Сам Prometheus
+  - job_name: prometheus
+    static_configs:
+      - targets: ['prometheus:9090']
+
+  # Spring Boot (Micrometer /actuator/prometheus)
+  - job_name: spring-boot
+    metrics_path: /actuator/prometheus
+    scrape_interval: 15s
+    static_configs:
+      - targets:
+          - 'gateway-service:9090'
+          - 'user-service:8080'
+          - 'notification-service:8080'
+          - 'tea-service:8084'
+          - 'communication-service:8085'
+        labels:
+          stack: pad
+
+  - job_name: python-services
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - 'fundraising-service-1:8000'
+          - 'fundraising-service-2:8000'
+          - 'cab-booking-service:8000'
+          - 'check-in-service:8012'
+
+  - job_name: node-services
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - 'lost-and-found-service:3000'
+          - 'budgeting-service:3001'
+          - 'sharing-service:8001'
+
+  - job_name: elasticsearch
+    static_configs:
+      - targets: ['elasticsearch-exporter:9114']
+
+  # Blackbox exporter для health-check'ов HTTP
+  - job_name: blackbox-http
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+          - http://gateway-service:9090/actuator/health
+          - http://user-service:8080/userservice/api/v1/health
+          - http://notification-service:8080/notificationsvc/api/v1/health
+          - http://tea-service:8084/actuator/health
+          - http://communication-service:8085/actuator/health
+          - http://lost-and-found-service:3000/health
+          - http://budgeting-service:3001/health
+          - http://sharing-service:8001/health
+          - http://cab-booking-service:8000/
+          - http://check-in-service:8012/healthz
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
