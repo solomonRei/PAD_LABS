@@ -38,6 +38,15 @@ services:
       USER_SVC_JWT_TTL_MINUTES: ${USER_SVC_JWT_TTL_MINUTES}
       USER_SVC_SPRING_JPA_HIBERNATE_DDL_AUTO: ${USER_SVC_SPRING_JPA_HIBERNATE_DDL_AUTO}
       USER_SVC_APP_DATA_INITIALIZE: ${USER_SVC_APP_DATA_INITIALIZE:-true}
+      LOGSTASH_HOST: logstash
+      LOGSTASH_PORT: 5000
+      LOGSTASH_LEVEL: INFO
+      EUREKA_SERVER_URL: http://discovery-server:8761/eureka/
+      EUREKA_REGISTER: true
+      EUREKA_FETCH: true
+      EUREKA_ENABLED: true
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,prometheus
+      MANAGEMENT_METRICS_EXPORT_PROMETHEUS_ENABLED: true
     ports:
       - "${USER_SVC_EXTERNAL_PORT:-8080}:${USER_SVC_SERVER_PORT:-8080}"
     networks:
@@ -102,6 +111,15 @@ services:
       CABBOOKING_SERVICE_URL: http://cab-booking-service:8000
       CHECKIN_SERVICE_URL: http://check-in-service:8012
       TEA_SERVICE_URL: http://tea-service:8084
+      LOGSTASH_HOST: logstash
+      LOGSTASH_PORT: 5000
+      LOGSTASH_LEVEL: INFO
+      EUREKA_SERVER_URL: http://discovery-server:8761/eureka/
+      EUREKA_REGISTER: true
+      EUREKA_FETCH: true
+      EUREKA_ENABLED: true
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,prometheus
+      MANAGEMENT_METRICS_EXPORT_PROMETHEUS_ENABLED: true
     ports:
       - "9090:9090"
     networks:
@@ -133,8 +151,50 @@ services:
       NOTIFICATION_SVC_MAIL_PASSWORD: ${NOTIFICATION_SVC_MAIL_PASSWORD:-test}
       NOTIFICATION_SVC_MONGO_URI: ${NOTIFICATION_SVC_MONGO_URI}
       NOTIFICATION_SVC_MONGO_DATABASE: ${NOTIFICATION_SVC_MONGO_DATABASE}
+      LOGSTASH_HOST: logstash
+      LOGSTASH_PORT: 5000
+      LOGSTASH_LEVEL: INFO
+      EUREKA_SERVER_URL: http://discovery-server:8761/eureka/
+      EUREKA_REGISTER: true
+      EUREKA_FETCH: true
+      EUREKA_ENABLED: true
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,prometheus
+      MANAGEMENT_METRICS_EXPORT_PROMETHEUS_ENABLED: true
     ports:
       - "8081:8080"
+    networks:
+      - pad-network
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:${NOTIFICATION_SVC_SERVER_PORT:-8080}/notificationsvc/api/v1/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  notification-service-2:
+    image: laineer/pad-notification-svc:latest
+    container_name: pad-notification-service-2
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SERVER_PORT: ${NOTIFICATION_SVC_SERVER_PORT}
+      NOTIFICATION_SVC_MAIL_ENABLED: ${NOTIFICATION_SVC_MAIL_ENABLED:-false}
+      NOTIFICATION_SVC_MAIL_FROM: ${NOTIFICATION_SVC_MAIL_FROM:-no-reply@example.com}
+      NOTIFICATION_SVC_MAIL_USERNAME: ${NOTIFICATION_SVC_MAIL_USERNAME:-test}
+      NOTIFICATION_SVC_MAIL_PASSWORD: ${NOTIFICATION_SVC_MAIL_PASSWORD:-test}
+      NOTIFICATION_SVC_MONGO_URI: ${NOTIFICATION_SVC_MONGO_URI}
+      NOTIFICATION_SVC_MONGO_DATABASE: ${NOTIFICATION_SVC_MONGO_DATABASE}
+      LOGSTASH_HOST: logstash
+      LOGSTASH_PORT: 5000
+      LOGSTASH_LEVEL: INFO
+      EUREKA_SERVER_URL: http://discovery-server:8761/eureka/
+      EUREKA_REGISTER: true
+      EUREKA_FETCH: true
+      EUREKA_ENABLED: true
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,prometheus
+      MANAGEMENT_METRICS_EXPORT_PROMETHEUS_ENABLED: true
+    ports:
+      - "8071:8080"
     networks:
       - pad-network
     restart: unless-stopped
@@ -178,6 +238,15 @@ services:
       TEA_SVC_SPRING_DATASOURCE_PASSWORD: ${TEA_SVC_SPRING_DATASOURCE_PASSWORD}
       TEA_SVC_SPRING_JPA_HIBERNATE_DDL_AUTO: ${TEA_SVC_SPRING_JPA_HIBERNATE_DDL_AUTO:-validate}
       TEA_SVC_DATA_SEEDER_RUN: ${TEA_SVC_DATA_SEEDER_RUN:-false}
+      LOGSTASH_HOST: logstash
+      LOGSTASH_PORT: 5000
+      LOGSTASH_LEVEL: INFO
+      EUREKA_SERVER_URL: http://discovery-server:8761/eureka/
+      EUREKA_REGISTER: true
+      EUREKA_FETCH: true
+      EUREKA_ENABLED: true
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,prometheus
+      MANAGEMENT_METRICS_EXPORT_PROMETHEUS_ENABLED: true
     ports:
       - "8082:8084"
     networks:
@@ -193,6 +262,42 @@ services:
       retries: 3
       start_period: 40s
 
+  tea-service-2:
+    image: smeloved/pad-tea-svc:latest
+    container_name: pad-tea-service-2
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      TEA_SVC_SERVER_PORT: ${TEA_SVC_SERVER_PORT:-8084}
+      TEA_SVC_SPRING_DATASOURCE_URL: jdbc:postgresql://tea_service_postgres:5432/${TEA_SVC_DB_NAME}
+      TEA_SVC_SPRING_DATASOURCE_USERNAME: ${TEA_SVC_SPRING_DATASOURCE_USERNAME}
+      TEA_SVC_SPRING_DATASOURCE_PASSWORD: ${TEA_SVC_SPRING_DATASOURCE_PASSWORD}
+      TEA_SVC_SPRING_JPA_HIBERNATE_DDL_AUTO: ${TEA_SVC_SPRING_JPA_HIBERNATE_DDL_AUTO:-validate}
+      TEA_SVC_DATA_SEEDER_RUN: ${TEA_SVC_DATA_SEEDER_RUN:-false}
+      LOGSTASH_HOST: logstash
+      LOGSTASH_PORT: 5000
+      LOGSTASH_LEVEL: INFO
+      EUREKA_SERVER_URL: http://discovery-server:8761/eureka/
+      EUREKA_REGISTER: true
+      EUREKA_FETCH: true
+      EUREKA_ENABLED: true
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,prometheus
+      MANAGEMENT_METRICS_EXPORT_PROMETHEUS_ENABLED: true
+
+    ports:
+      - "8072:8084"
+    networks:
+      - pad-network
+    depends_on:
+      tea_service_postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:${TEA_SVC_SERVER_PORT:-8084}/actuator/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
   communication-service:
     image: smeloved/pad-communication-svc:latest
     container_name: pad-communication-service
@@ -202,6 +307,13 @@ services:
       COMMUNICATION_SVC_MONGO_URI: ${COMMUNICATION_SVC_MONGO_URI}
       COMMUNICATION_SVC_MONGO_DATABASE: ${COMMUNICATION_SVC_MONGO_DATABASE}
       COMMUNICATION_SVC_DATA_SEEDER_RUN: ${COMMUNICATION_SVC_DATA_SEEDER_RUN:-false}
+      LOGSTASH_HOST: logstash
+      LOGSTASH_PORT: 5000
+      LOGSTASH_LEVEL: INFO
+      EUREKA_SERVER_URL: http://discovery-server:8761/eureka/
+      EUREKA_REGISTER: true
+      EUREKA_FETCH: true
+      EUREKA_ENABLED: true
     ports:
       - "8083:8085"
     networks:
@@ -222,6 +334,13 @@ services:
       NODE_ENV: production
       PORT: 3000
       DATABASE_URL: "file:/app/prisma/dev.db"
+      LOGSTASH_HOST: logstash
+      LOGSTASH_PORT: 5000
+      LOGSTASH_LEVEL: INFO
+      EUREKA_SERVER_URL: http://discovery-server:8761/eureka/
+      EUREKA_REGISTER: true
+      EUREKA_FETCH: true
+      EUREKA_ENABLED: true
     volumes:
       - /Users/esmelov/IdeaProjects/PAD_LABS/prisma/lost-and-found:/app/prisma
     ports:
@@ -250,6 +369,13 @@ services:
       NODE_ENV: production
       PORT: 3001
       DATABASE_URL: "file:/app/prisma/dev.db"
+      LOGSTASH_HOST: logstash
+      LOGSTASH_PORT: 5000
+      LOGSTASH_LEVEL: INFO
+      EUREKA_SERVER_URL: http://discovery-server:8761/eureka/
+      EUREKA_REGISTER: true
+      EUREKA_FETCH: true
+      EUREKA_ENABLED: true
     volumes:
       - /Users/esmelov/IdeaProjects/PAD_LABS/prisma/budgeting:/app/prisma
     ports:
@@ -306,8 +432,40 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_HOST: fundraising-postgres
       POSTGRES_PORT: 5432
+      LOGSTASH_HOST: logstash
+      LOGSTASH_PORT: 5000
+      LOGSTASH_LEVEL: INFO
+      EUREKA_SERVER_URL: http://discovery-server:8761/eureka/
+      EUREKA_REGISTER: true
+      EUREKA_FETCH: true
+      EUREKA_ENABLED: true
     ports:
       - "8086:8000"
+    networks:
+      - pad-network
+    depends_on:
+      fundraising-postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  fundraising-service-2:
+    image: nidelcue/fund-raising-svc:latest
+    container_name: fundraising-service-2
+    environment:
+      POSTGRES_DB: sharing
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_HOST: fundraising-postgres
+      POSTGRES_PORT: 5432
+      LOGSTASH_HOST: logstash
+      LOGSTASH_PORT: 5000
+      LOGSTASH_LEVEL: INFO
+      EUREKA_SERVER_URL: http://discovery-server:8761/eureka/
+      EUREKA_REGISTER: true
+      EUREKA_FETCH: true
+      EUREKA_ENABLED: true
+    ports:
+      - "8076:8000"
     networks:
       - pad-network
     depends_on:
@@ -326,6 +484,13 @@ services:
       POSTGRES_HOST: sharing-postgres
       POSTGRES_PORT: 5432
       PGDATA: /var/lib/postgresql/data add
+      LOGSTASH_HOST: logstash
+      LOGSTASH_PORT: 5000
+      LOGSTASH_LEVEL: INFO
+      EUREKA_SERVER_URL: http://discovery-server:8761/eureka/
+      EUREKA_REGISTER: true
+      EUREKA_FETCH: true
+      EUREKA_ENABLED: true
     volumes:
       - sharing_postgres_data:/var/lib/postgresql/data
       - ./db-init/sharing.sql:/docker-entrypoint-initdb.d/001-sharing.sql:ro
@@ -349,6 +514,13 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_HOST: sharing-postgres
       POSTGRES_PORT: 5432
+      LOGSTASH_HOST: logstash
+      LOGSTASH_PORT: 5000
+      LOGSTASH_LEVEL: INFO
+      EUREKA_SERVER_URL: http://discovery-server:8761/eureka/
+      EUREKA_REGISTER: true
+      EUREKA_FETCH: true
+      EUREKA_ENABLED: true
     ports:
       - "8087:8001"
     networks:
@@ -466,7 +638,104 @@ services:
           memory: 256M
           cpus: '0.25'
 
+  discovery-server:
+    image: nidelcue/pad-discovery-svc:latest
+    container_name: discovery-server
+    ports:
+      - "8761:8761"
+
+  prometheus:
+    image: prom/prometheus:v2.45.5
+    container_name: prometheus
+    restart: always
+    ports:
+      - "9092:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    depends_on:
+      - gateway-service
+      - discovery-server
+      - logstash
+
+  grafana:
+    image: grafana/grafana-oss:8.5.2
+    container_name: grafana
+    restart: always
+    ports:
+      - "3010:3000"
+    links:
+      - prometheus:prometheus
+    volumes:
+      - ./grafana:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=password
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.3.3
+    container_name: elasticsearch
+    environment:
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+      - "discovery.type=single-node"
+      - xpack.security.enabled=false
+    ports:
+      - "9200:9200"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.3.3
+    container_name: kibana
+    ports:
+      - "5601:5601"
+    environment:
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+      ELASTICSEARCH_HOSTS: '["http://elasticsearch:9200"]'
+    depends_on:
+      - elasticsearch
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.3.3
+    container_name: logstash
+    volumes:
+      - ./logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
+      - ./logstash/pipeline:/usr/share/logstash/pipeline:ro
+    ports:
+      - "5044:5044"
+      - "5001:5001"
+      - "9600:9600"
+    environment:
+      LS_JAVA_OPTS: "-Xmx256m -Xms256m"
+    depends_on:
+      - elasticsearch
+
+  elasticsearch-exporter:
+    image: quay.io/prometheuscommunity/elasticsearch-exporter:v1.7.0
+    container_name: elasticsearch-exporter
+    command:
+      - '--es.uri=http://elasticsearch:9200'
+    ports:
+      - '9114:9114'
+    networks:
+      - pad-network
+    depends_on:
+      - elasticsearch
+    restart: unless-stopped
+
+  blackbox-exporter:
+    image: prom/blackbox-exporter:v0.25.0
+    container_name: blackbox-exporter
+    ports:
+      - '9115:9115'
+    networks:
+      - pad-network
+    restart: unless-stopped
+
+
 volumes:
+  elasticsearch_data:
+    driver: local
   usersvc_postgres_data:
     driver: local
   gateway_redis_data:
