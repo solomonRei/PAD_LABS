@@ -1,8 +1,7 @@
-version: '3.8'
-
 services:
   usersvc-postgres:
     image: postgres:15-alpine
+    platform: linux/amd64
     container_name: usersvc-postgres
     environment:
       POSTGRES_DB: ${USER_SVC_DB_NAME}
@@ -12,38 +11,58 @@ services:
     volumes:
       - usersvc_postgres_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"   # usersvc Postgres
+      - "5437:5432"   # usersvc Postgres
     networks:
       - pad-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${USER_SVC_DB_USER} -d ${USER_SVC_DB_NAME}"]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
 
   user-service:
+    build:
+      context: ./PAD_USER_SVC copy
+      dockerfile: Dockerfile
     image: laineer/pad-user-svc:latest
     container_name: pad-user-service
     environment:
       SPRING_PROFILES_ACTIVE: prod
       SERVER_PORT: ${USER_SVC_SERVER_PORT:-8080}
+      SPRING_APPLICATION_NAME: user-service
       USER_SVC_SPRING_DATASOURCE_URL: jdbc:postgresql://usersvc-postgres:5432/${USER_SVC_DB_NAME}
       USER_SVC_SPRING_DATASOURCE_USERNAME: ${USER_SVC_DB_USERNAME}
       USER_SVC_SPRING_DATASOURCE_PASSWORD: ${USER_SVC_DB_PASSWORD}
       USER_SVC_DISCORD_CLIENT_ID: ${USER_SVC_DISCORD_CLIENT_ID}
       USER_SVC_DISCORD_CLIENT_SECRET: ${USER_SVC_DISCORD_CLIENT_SECRET}
+      USER_SVC_DISCORD_REDIRECT_URI: ${USER_SVC_DISCORD_REDIRECT_URI:-http://localhost:8080}
       USER_SVC_DISCORD_BOT_TOKEN: ${USER_SVC_DISCORD_BOT_TOKEN}
       USER_SVC_FAF_GUILD_ID: ${USER_SVC_FAF_GUILD_ID}
       USER_SVC_JWT_SECRET: ${USER_SVC_JWT_SECRET}
       USER_SVC_JWT_TTL_MINUTES: ${USER_SVC_JWT_TTL_MINUTES}
       USER_SVC_SPRING_JPA_HIBERNATE_DDL_AUTO: ${USER_SVC_SPRING_JPA_HIBERNATE_DDL_AUTO}
       USER_SVC_APP_DATA_INITIALIZE: ${USER_SVC_APP_DATA_INITIALIZE:-true}
+      MESSAGE_BROKER_URL: ws://message-broker:8080/ws/service
+      MESSAGE_BROKER_ENABLED: true
+      MESSAGE_BROKER_TOPICS: user.request,auth.event,notification.status
+      LOGSTASH_HOST: logstash
+      LOGSTASH_PORT: 5000
+      LOGSTASH_LEVEL: INFO
+      EUREKA_SERVER_URL: http://discovery-server:8761/eureka
+      EUREKA_REGISTER: true
+      EUREKA_FETCH: true
+      EUREKA_ENABLED: true
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,prometheus,metrics
+      MANAGEMENT_METRICS_EXPORT_PROMETHEUS_ENABLED: true
+      MANAGEMENT_ENDPOINT_HEALTH_SHOW_DETAILS: always
     ports:
       - "${USER_SVC_EXTERNAL_PORT:-8080}:${USER_SVC_SERVER_PORT:-8080}"
     networks:
       - pad-network
     depends_on:
       usersvc-postgres:
+        condition: service_healthy
+      message-broker:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
@@ -55,6 +74,7 @@ services:
 
   gateway-redis:
     image: redis:7-alpine
+    platform: linux/amd64
     container_name: pad-gateway-redis
     ports:
       - "6379:6379"
@@ -71,6 +91,9 @@ services:
     restart: unless-stopped
 
   gateway-service:
+    build:
+      context: ./PAD_GATEWAY_SVC copy
+      dockerfile: Dockerfile
     image: smeloved/pad-gateway-svc:latest
     container_name: pad-gateway-service
     environment:
@@ -87,21 +110,22 @@ services:
       DISCORD_GUILD_ID: ${USER_SVC_FAF_GUILD_ID}
       JWT_SECRET: ${USER_SVC_JWT_SECRET}
       JWT_TTL_MINUTES: ${USER_SVC_JWT_TTL_MINUTES:-120}
-      CORS_ALLOWED_ORIGINS: ${GATEWAY_CORS_ALLOWED_ORIGINS:-http://localhost:3000,https://yourdomain.com}
-      GATEWAY_TIMEOUT_MS: ${GATEWAY_TIMEOUT_MS:-30000}
-      GATEWAY_MAX_CONCURRENT_REQUESTS: ${GATEWAY_MAX_CONCURRENT_REQUESTS:-100}
-      CACHE_TTL_MINUTES: ${GATEWAY_CACHE_TTL_MINUTES:-10}
-      # Downstream Services URLs (Docker internal network)
       USER_SERVICE_URL: http://user-service:8080
-      NOTIFICATION_SERVICE_URL: http://notification-service:8080
-      COMMUNICATION_SERVICE_URL: http://communication-service:8085
-      LOSTFOUND_SERVICE_URL: http://lost-and-found-service:3000
-      FUNDRAISING_SERVICE_URL: http://fundraising-service:8000
-      SHARING_SERVICE_URL: http://sharing-service:8001
-      BUDGETING_SERVICE_URL: http://budgeting-service:3001
-      CABBOOKING_SERVICE_URL: http://cab-booking-service:8000
-      CHECKIN_SERVICE_URL: http://check-in-service:8012
-      TEA_SERVICE_URL: http://tea-service:8084
+      USER_SERVICE_EXTERNAL_URL: http://localhost:8080
+      AUTH_REDIRECT_URL: ${AUTH_REDIRECT_URL:-http://localhost:3000}
+      GATEWAY_SERVICE_TOKEN: ${GATEWAY_SERVICE_TOKEN}
+      CORS_ALLOWED_ORIGINS: ${GATEWAY_CORS_ALLOWED_ORIGINS:-http://localhost:3000,https://yourdomain.com}
+      CACHE_TTL_MINUTES: ${GATEWAY_CACHE_TTL_MINUTES:-10}
+      LOGSTASH_HOST: logstash
+      LOGSTASH_PORT: 5000
+      LOGSTASH_LEVEL: INFO
+      EUREKA_SERVER_URL: http://discovery-server:8761/eureka
+      EUREKA_REGISTER: true
+      EUREKA_FETCH: false
+      EUREKA_ENABLED: true
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,prometheus,metrics
+      MANAGEMENT_METRICS_EXPORT_PROMETHEUS_ENABLED: true
+      MANAGEMENT_ENDPOINT_HEALTH_SHOW_DETAILS: always
     ports:
       - "9090:9090"
     networks:
@@ -113,6 +137,8 @@ services:
         condition: service_healthy
       user-service:
         condition: service_started
+      discovery-server:
+        condition: service_healthy
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9090/actuator/health"]
@@ -122,24 +148,50 @@ services:
       start_period: 40s
 
   notification-service:
+    build:
+      context: ./PAD_NOTIFICATION_SVC copy
+      dockerfile: Dockerfile
     image: laineer/pad-notification-svc:latest
     container_name: pad-notification-service
     environment:
       SPRING_PROFILES_ACTIVE: prod
-      SERVER_PORT: ${NOTIFICATION_SVC_SERVER_PORT}
+      SERVER_PORT: ${NOTIFICATION_SVC_SERVER_PORT:-8080}
+      SPRING_APPLICATION_NAME: notification-service
       NOTIFICATION_SVC_MAIL_ENABLED: ${NOTIFICATION_SVC_MAIL_ENABLED:-false}
       NOTIFICATION_SVC_MAIL_FROM: ${NOTIFICATION_SVC_MAIL_FROM:-no-reply@example.com}
       NOTIFICATION_SVC_MAIL_USERNAME: ${NOTIFICATION_SVC_MAIL_USERNAME:-test}
       NOTIFICATION_SVC_MAIL_PASSWORD: ${NOTIFICATION_SVC_MAIL_PASSWORD:-test}
       NOTIFICATION_SVC_MONGO_URI: ${NOTIFICATION_SVC_MONGO_URI}
       NOTIFICATION_SVC_MONGO_DATABASE: ${NOTIFICATION_SVC_MONGO_DATABASE}
+      DISCORD_ENABLED: ${DISCORD_ENABLED:-true}
+      DISCORD_BOT_TOKEN: ${USER_SVC_DISCORD_BOT_TOKEN}
+      DISCORD_GUILD_ID: ${USER_SVC_FAF_GUILD_ID}
+      DISCORD_DEFAULT_CHANNEL_ID: ${DISCORD_DEFAULT_CHANNEL_ID:-}
+      MESSAGE_BROKER_URL: ws://message-broker:8080/ws/service
+      MESSAGE_BROKER_ENABLED: true
+      MESSAGE_BROKER_TOPICS: notification.request,email.send,sms.send,item.rented,item.returned,item.created,fundraiser.created,donation.received,fundraising.completion
+      LOGSTASH_HOST: logstash
+      LOGSTASH_PORT: 5000
+      LOGSTASH_LEVEL: INFO
+      EUREKA_SERVER_URL: http://discovery-server:8761/eureka
+      EUREKA_REGISTER: true
+      EUREKA_FETCH: true
+      EUREKA_ENABLED: true
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,prometheus,metrics
+      MANAGEMENT_METRICS_EXPORT_PROMETHEUS_ENABLED: true
+      MANAGEMENT_ENDPOINT_HEALTH_SHOW_DETAILS: always
     ports:
       - "8081:8080"
     networks:
       - pad-network
+    depends_on:
+      mongo:
+        condition: service_healthy
+      message-broker:
+        condition: service_healthy
     restart: unless-stopped
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:${NOTIFICATION_SVC_SERVER_PORT:-8080}/notificationsvc/api/v1/health" ]
+      test: [ "CMD", "curl", "-f", "http://localhost:${NOTIFICATION_SVC_SERVER_PORT:-8080}/actuator/health" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -148,42 +200,64 @@ services:
   tea_service_postgres:
     container_name: tea_service_postgres
     image: postgres:16
+    platform: linux/arm64/v8
     environment:
-      POSTGRES_DB: ${TEA_SVC_DB_NAME}
-      POSTGRES_USER: ${TEA_SVC_SPRING_DATASOURCE_USERNAME}
-      POSTGRES_PASSWORD: ${TEA_SVC_SPRING_DATASOURCE_PASSWORD}
+      POSTGRES_DB: ${TEA_SVC_DB_NAME:-tea_service}
+      POSTGRES_USER: ${TEA_SVC_SPRING_DATASOURCE_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${TEA_SVC_SPRING_DATASOURCE_PASSWORD:-postgres}
       PGDATA: /var/lib/postgresql/data
     volumes:
       - teasvc_postgres_data:/var/lib/postgresql/data
     ports:
       - "5433:5432"
-    command: -p 5432
     restart: always
     networks:
       - pad-network
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${TEA_SVC_SPRING_DATASOURCE_USERNAME} -d ${TEA_SVC_DB_NAME}" ]
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
       interval: 10s
       timeout: 5s
       retries: 5
 
   tea-service:
+    build:
+      context: ./PAD_TEA_SVC copy/PAD_TEA_SVC
+      dockerfile: Dockerfile
     image: smeloved/pad-tea-svc:latest
     container_name: pad-tea-service
     environment:
       SPRING_PROFILES_ACTIVE: prod
+      SERVER_PORT: 8084
+      SPRING_APPLICATION_NAME: tea-service
       TEA_SVC_SERVER_PORT: ${TEA_SVC_SERVER_PORT:-8084}
-      TEA_SVC_SPRING_DATASOURCE_URL: jdbc:postgresql://tea_service_postgres:5432/${TEA_SVC_DB_NAME}
-      TEA_SVC_SPRING_DATASOURCE_USERNAME: ${TEA_SVC_SPRING_DATASOURCE_USERNAME}
-      TEA_SVC_SPRING_DATASOURCE_PASSWORD: ${TEA_SVC_SPRING_DATASOURCE_PASSWORD}
-      TEA_SVC_SPRING_JPA_HIBERNATE_DDL_AUTO: ${TEA_SVC_SPRING_JPA_HIBERNATE_DDL_AUTO:-validate}
+      TEA_SVC_SPRING_DATASOURCE_URL: jdbc:postgresql://tea_service_postgres:5432/${TEA_SVC_DB_NAME:-tea_service}
+      TEA_SVC_SPRING_DATASOURCE_USERNAME: ${TEA_SVC_SPRING_DATASOURCE_USERNAME:-postgres}
+      TEA_SVC_SPRING_DATASOURCE_PASSWORD: ${TEA_SVC_SPRING_DATASOURCE_PASSWORD:-postgres}
+      TEA_SVC_SPRING_JPA_HIBERNATE_DDL_AUTO: ${TEA_SVC_SPRING_JPA_HIBERNATE_DDL_AUTO:-update}
       TEA_SVC_DATA_SEEDER_RUN: ${TEA_SVC_DATA_SEEDER_RUN:-false}
+      GATEWAY_SERVICE_TOKEN: ${GATEWAY_SERVICE_TOKEN:-tVJh5Kz8xQm9WYnRyYWN0aW9uU2VjdXJlVG9rZW4xMjM0NTY}
+      NOTIFICATION_SERVICE_URL: http://notification-service:8080
+      MESSAGE_BROKER_URL: ws://message-broker:8080/ws/service
+      MESSAGE_BROKER_ENABLED: true
+      MESSAGE_BROKER_TOPICS: tea.order,tea.status,notification.status
+      LOGSTASH_HOST: logstash
+      LOGSTASH_PORT: 5000
+      LOGSTASH_LEVEL: INFO
+      EUREKA_SERVER_URL: http://discovery-server:8761/eureka
+      EUREKA_REGISTER: true
+      EUREKA_FETCH: true
+      EUREKA_ENABLED: true
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,prometheus,metrics
+      MANAGEMENT_METRICS_EXPORT_PROMETHEUS_ENABLED: true
+      MANAGEMENT_ENDPOINT_HEALTH_SHOW_DETAILS: always
     ports:
       - "8082:8084"
     networks:
       - pad-network
     depends_on:
       tea_service_postgres:
+        condition: service_healthy
+      message-broker:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
@@ -194,34 +268,65 @@ services:
       start_period: 40s
 
   communication-service:
+    build:
+      context: ./PAD_COMMUNICATION_SVC copy
+      dockerfile: Dockerfile
     image: smeloved/pad-communication-svc:latest
     container_name: pad-communication-service
     environment:
       SPRING_PROFILES_ACTIVE: prod
+      SERVER_PORT: 8085
+      SPRING_APPLICATION_NAME: communication-service
       COMMUNICATION_SVC_SERVER_PORT: ${COMMUNICATION_SVC_SERVER_PORT:-8085}
       COMMUNICATION_SVC_MONGO_URI: ${COMMUNICATION_SVC_MONGO_URI}
       COMMUNICATION_SVC_MONGO_DATABASE: ${COMMUNICATION_SVC_MONGO_DATABASE}
       COMMUNICATION_SVC_DATA_SEEDER_RUN: ${COMMUNICATION_SVC_DATA_SEEDER_RUN:-false}
+      MESSAGE_BROKER_URL: ws://message-broker:8080/ws/service
+      MESSAGE_BROKER_ENABLED: true
+      MESSAGE_BROKER_TOPICS: user.action,notification.status,message.request
+      LOGSTASH_HOST: logstash
+      LOGSTASH_PORT: 5000
+      LOGSTASH_LEVEL: INFO
+      EUREKA_SERVER_URL: http://discovery-server:8761/eureka
+      EUREKA_REGISTER: true
+      EUREKA_FETCH: true
+      EUREKA_ENABLED: true
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,prometheus,metrics
+      MANAGEMENT_METRICS_EXPORT_PROMETHEUS_ENABLED: true
+      MANAGEMENT_ENDPOINT_HEALTH_SHOW_DETAILS: always
     ports:
       - "8083:8085"
     networks:
       - pad-network
+    depends_on:
+      mongo:
+        condition: service_healthy
+      message-broker:
+        condition: service_healthy
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:${COMMUNICATION_SVC_SERVER_PORT:-8085}/actuator/health"]
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8085/actuator/health || exit 1"]
       interval: 30s
       timeout: 10s
-      retries: 3
-      start_period: 40s
+      retries: 5
+      start_period: 60s
 
   lost-and-found-service:
     image: mithancik/pad-lost-and-found-service:latest
+    platform: linux/amd64
     container_name: lost-and-found-service
     restart: unless-stopped
     environment:
       NODE_ENV: production
       PORT: 3000
       DATABASE_URL: "file:/app/prisma/dev.db"
+      LOGSTASH_HOST: logstash
+      LOGSTASH_PORT: 5000
+      LOGSTASH_LEVEL: INFO
+      EUREKA_SERVER_URL: http://discovery-server:8761/eureka
+      EUREKA_REGISTER: true
+      EUREKA_FETCH: true
+      EUREKA_ENABLED: true
     volumes:
       - /Users/esmelov/IdeaProjects/PAD_LABS/prisma/lost-and-found:/app/prisma
     ports:
@@ -231,6 +336,7 @@ services:
 
   lost-and-found-sqlite:
     image: keinos/sqlite3
+    platform: linux/amd64
     container_name: lost-and-found-sqlite
     stdin_open: true
     tty: true
@@ -244,12 +350,20 @@ services:
   # --- BUDGETING API ---
   budgeting-service:
     image: mithancik/pad-budgeting-service:latest
+    platform: linux/amd64
     container_name: budgeting-service
     restart: unless-stopped
     environment:
       NODE_ENV: production
       PORT: 3001
       DATABASE_URL: "file:/app/prisma/dev.db"
+      LOGSTASH_HOST: logstash
+      LOGSTASH_PORT: 5000
+      LOGSTASH_LEVEL: INFO
+      EUREKA_SERVER_URL: http://discovery-server:8761/eureka
+      EUREKA_REGISTER: true
+      EUREKA_FETCH: true
+      EUREKA_ENABLED: true
     volumes:
       - /Users/esmelov/IdeaProjects/PAD_LABS/prisma/budgeting:/app/prisma
     ports:
@@ -262,6 +376,7 @@ services:
   # SQLite CLI для budgeting
   budgeting-sqlite:
     image: keinos/sqlite3
+    platform: linux/amd64
     container_name: budgeting-sqlite
     stdin_open: true
     tty: true
@@ -276,13 +391,11 @@ services:
   fundraising-postgres:
     container_name: fundraising-postgres
     image: postgres:16
+    platform: linux/arm64/v8
     environment:
-      POSTGRES_DB: sharing
+      POSTGRES_DB: fundraising
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_HOST: fundraising-postgres
-      POSTGRES_PORT: 5432
-      PGDATA: /var/lib/postgresql/data
     volumes:
       - fundraising_postgres_data:/var/lib/postgresql/data
       - ./db-init/fundraising.sql:/docker-entrypoint-initdb.d/001-fundraising.sql:ro
@@ -292,20 +405,34 @@ services:
     networks:
       - pad-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
 
   fundraising-service:
+    build:
+      context: ./fundraising-service
+      dockerfile: Dockerfile
     image: nidelcue/fund-raising-svc:latest
     container_name: fundraising-service
     environment:
-      POSTGRES_DB: sharing
+      POSTGRES_DB: fundraising
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_HOST: fundraising-postgres
       POSTGRES_PORT: 5432
+      SERVICE_PORT: 8000
+      SERVICE_HOST: fundraising-service
+      SERVICE_NAME: FUNDRAISING-SERVICE
+      MESSAGE_BROKER_URL: ws://message-broker:8080/ws/service
+      LOGSTASH_HOST: logstash
+      LOGSTASH_PORT: 5000
+      LOGSTASH_LEVEL: INFO
+      EUREKA_SERVER_URL: http://discovery-server:8761/eureka
+      EUREKA_REGISTER: true
+      EUREKA_FETCH: true
+      EUREKA_ENABLED: true
     ports:
       - "8086:8000"
     networks:
@@ -313,19 +440,25 @@ services:
     depends_on:
       fundraising-postgres:
         condition: service_healthy
+      message-broker:
+        condition: service_healthy
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   # === Sharing stack ===
   sharing-postgres:
     container_name: sharing-postgres
     image: postgres:16
+    platform: linux/arm64/v8
     environment:
       POSTGRES_DB: sharing
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_HOST: sharing-postgres
-      POSTGRES_PORT: 5432
-      PGDATA: /var/lib/postgresql/data add
     volumes:
       - sharing_postgres_data:/var/lib/postgresql/data
       - ./db-init/sharing.sql:/docker-entrypoint-initdb.d/001-sharing.sql:ro
@@ -335,12 +468,15 @@ services:
     networks:
       - pad-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
 
   sharing-service:
+    build:
+      context: ./sharing-service
+      dockerfile: Dockerfile
     image: nidelcue/pad-sharing-svc:latest
     container_name: sharing-service
     environment:
@@ -349,6 +485,16 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_HOST: sharing-postgres
       POSTGRES_PORT: 5432
+      SHARING_SVC_SERVER_PORT: 8001
+      SERVICE_HOST: sharing-service
+      MESSAGE_BROKER_URL: ws://message-broker:8080/ws/service
+      LOGSTASH_HOST: logstash
+      LOGSTASH_PORT: 5000
+      LOGSTASH_LEVEL: INFO
+      EUREKA_SERVER_URL: http://discovery-server:8761/eureka
+      EUREKA_REGISTER: true
+      EUREKA_FETCH: true
+      EUREKA_ENABLED: true
     ports:
       - "8087:8001"
     networks:
@@ -356,11 +502,20 @@ services:
     depends_on:
       sharing-postgres:
         condition: service_healthy
+      message-broker:
+        condition: service_healthy
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   # === Cab booking stack ===
   cabsvc-postgres:
     image: postgres:15-alpine
+    platform: linux/amd64
     container_name: cabsvc-postgres
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
@@ -383,6 +538,7 @@ services:
 
   cab-booking-service:
     image: ${DOCKER_HUB_USERNAME:-kira9999}/cab-booking-service:${VERSION:-latest}
+    platform: linux/amd64
     container_name: cab-booking-service
     env_file:
       - .env
@@ -415,7 +571,8 @@ services:
       start_period: 40s
 
   mongo:
-    image: mongo:6
+    image: mongo:4.4
+    platform: linux/amd64
     container_name: check-in-mongo
     restart: unless-stopped
     ports:
@@ -435,6 +592,7 @@ services:
 
   check-in-service:
     image: ${DOCKER_USERNAME:-kira9999}/check-in-service:${VERSION:-latest}
+    platform: linux/amd64
     container_name: check-in-service
     restart: unless-stopped
     ports:
@@ -466,7 +624,175 @@ services:
           memory: 256M
           cpus: '0.25'
 
+  discovery-server:
+    build:
+      context: ./PAD_DISCOVERY_SVC copy
+      dockerfile: Dockerfile
+    image: nidelcue/pad-discovery-svc:latest
+    container_name: discovery-server
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      EUREKA_PORT: 8761
+      EUREKA_INSTANCE_HOSTNAME: discovery-server
+      EUREKA_CLIENT_REGISTER_WITH_EUREKA: false
+      EUREKA_CLIENT_FETCH_REGISTRY: false
+      EUREKA_SERVER_ENABLE_SELF_PRESERVATION: true
+      EUREKA_SERVER_EVICTION_INTERVAL_TIMER_IN_MS: 15000
+    ports:
+      - "8761:8761"
+    networks:
+      - pad-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8761/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+  
+  message-broker:
+    build:
+      context: ./PAD_MESSAGE_BROKER copy
+      dockerfile: Dockerfile
+    image: nidelcue/pad-message-broker:latest
+    container_name: pad-message-broker
+    environment:
+      BROKER_ID: broker-prod-1
+      BROKER_PORT: 8080
+      SERVICE_DISCOVERY_URL: http://discovery-server:8761
+      LOGSTASH_HOST: logstash
+      LOGSTASH_PORT: 5000
+    ports:
+      - "8089:8080"
+    networks:
+      - pad-network
+    volumes:
+      - message_broker_data:/app/data
+      - message_broker_logs:/app/logs
+    depends_on:
+      discovery-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--tries=1", "-O-", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v2.45.5
+    platform: linux/amd64
+    container_name: prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.enable-lifecycle'
+    restart: always
+    ports:
+      - "9092:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    networks:
+      - pad-network
+
+  grafana:
+    image: grafana/grafana-oss:8.5.2
+    platform: linux/amd64
+    container_name: grafana
+    restart: always
+    ports:
+      - "3010:3000"
+    links:
+      - prometheus:prometheus
+    volumes:
+      - ./grafana:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=password
+    networks:
+      - pad-network
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.3.3
+    platform: linux/amd64
+    container_name: elasticsearch
+    environment:
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+      - "discovery.type=single-node"
+      - xpack.security.enabled=false
+    ports:
+      - "9200:9200"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    networks:
+      - pad-network
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.3.3
+    platform: linux/amd64
+    container_name: kibana
+    ports:
+      - "5601:5601"
+    environment:
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+      ELASTICSEARCH_HOSTS: '["http://elasticsearch:9200"]'
+    networks:
+      - pad-network
+    depends_on:
+      - elasticsearch
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.3.3
+    platform: linux/amd64
+    container_name: logstash
+    volumes:
+      - ./logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
+      - ./logstash/pipeline:/usr/share/logstash/pipeline:ro
+    ports:
+      - "5044:5044"
+      - "5001:5001"
+      - "9600:9600"
+    environment:
+      LS_JAVA_OPTS: "-Xmx256m -Xms256m"
+    networks:
+      - pad-network
+    depends_on:
+      - elasticsearch
+
+  elasticsearch-exporter:
+    image: quay.io/prometheuscommunity/elasticsearch-exporter:v1.7.0
+    platform: linux/amd64
+    container_name: elasticsearch-exporter
+    command:
+      - '--es.uri=http://elasticsearch:9200'
+    ports:
+      - '9114:9114'
+    networks:
+      - pad-network
+    depends_on:
+      - elasticsearch
+    restart: unless-stopped
+
+  blackbox-exporter:
+    image: prom/blackbox-exporter:v0.25.0
+    platform: linux/amd64
+    container_name: blackbox-exporter
+    ports:
+      - '9115:9115'
+    networks:
+      - pad-network
+    restart: unless-stopped
+
+
 volumes:
+  elasticsearch_data:
+    driver: local
   usersvc_postgres_data:
     driver: local
   gateway_redis_data:
@@ -483,6 +809,12 @@ volumes:
     driver: local
   lost_and_found_db: { }
   budgeting_db: { }
+  message_broker_data:
+    driver: local
+  message_broker_logs:
+    driver: local
+  prometheus_data:
+    driver: local
 
 
 networks:
