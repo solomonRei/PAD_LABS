@@ -10,6 +10,10 @@ The FAF Cab Management Platform is a comprehensive microservices-based system de
 
 | Service                 | Base Path                  | Description                                                |
 | ----------------------- |----------------------------| ---------------------------------------------------------- |
+| Gateway Service         | `/api/v1`                  | User authentication and caching (entry point for clients)  |
+| Message Broker          | `/api/v1`                  | Service-to-service communication, routing, load balancing |
+| Service Discovery       | `/eureka`                  | Service registration and discovery (Eureka)               |
+| Data Warehouse          | `/warehouse/api/v1`         | Centralized data warehouse with ETL processing            |
 | User Management Service | `/userservicesvc/api/v1`   | User authentication, authorization, and profile management |
 | Notification Service    | `/notificationsvc/api/v1`  | Multi-channel notification delivery system                 |
 | Communication Service   | `/communicationsvc/api/v1` | Real-time messaging and chat functionality                 |
@@ -25,6 +29,10 @@ The FAF Cab Management Platform is a comprehensive microservices-based system de
 ### Docker Hub
 | Service                 | Docker Hub Url                                                                  |
 | ----------------------- |---------------------------------------------------------------------------------|
+| Gateway Service         | `https://hub.docker.com/repository/docker/smeloved/pad-gateway-svc`            |
+| Message Broker          | `https://hub.docker.com/repository/docker/nidelcue/pad-message-broker`          |
+| Service Discovery       | `https://hub.docker.com/repository/docker/nidelcue/pad-discovery-svc`          |
+| Data Warehouse          | `https://hub.docker.com/repository/docker/pad-labs/pad-data-warehouse`         |
 | User Management Service | `https://hub.docker.com/repository/docker/laineer/pad-user-svc`                 |
 | Notification Service    | `https://hub.docker.com/repository/docker/laineer/pad-notification-svc`         |
 | Communication Service   | `https://hub.docker.com/repository/docker/smeloved/pad-communication-svc`       |
@@ -47,22 +55,132 @@ The FAF Cab Management Platform is a comprehensive microservices-based system de
 
 The FAF Cab Management Platform is built using a **microservices architecture**, where each service encapsulates a specific functionality. This ensures **modularity, independence, and maintainability**.
 
-Some services interact to share data or trigger actions, typically via **notifications, API calls, or shared databases**. Below is a breakdown of each service and how it communicates with others.
+**All service-to-service communication flows through the Message Broker**, which provides routing, load balancing, circuit breaking, and reliable message delivery. The Gateway Service handles only user authentication and caching, routing authenticated requests to backend services via the Message Broker.
+
+### Infrastructure Services
+
+#### Gateway Service
+
+- **Responsibilities:**
+  - User authentication (Discord OAuth2, JWT validation)
+  - Response caching for authenticated requests with **Consistent Hashing-based sharding**
+  - Request routing to backend services via Message Broker
+  - **Saga transaction coordination** for long-running distributed transactions
+- **Technology:** **Java (Spring Boot + Redis Cluster)**
+- **Caching Architecture:**
+  - **Consistent Hashing** for cache sharding across multiple Redis nodes
+  - Automatic key distribution using hash ring (virtual nodes for better distribution)
+  - Minimal key redistribution when nodes are added/removed (only ~1/n keys move)
+  - Comparison with Redis Cluster:
+    - **Custom Consistent Hashing:** More control over sharding logic, can customize hash function and virtual nodes
+    - **Redis Cluster:** Built-in sharding, automatic failover, but less flexible for custom distribution strategies
+    - **Our Implementation:** Uses consistent hashing for predictable key placement and minimal reshuffling
+- **Communication Pattern:** 
+  - Receives user requests and validates authentication
+  - Routes service requests through Message Broker using subscriber-based queues
+  - Caches responses with sharded storage for improved performance and scalability
+  - Coordinates Saga transactions for distributed operations
+- **Note:** All service-to-service routing, load balancing, and circuit breaking has been moved to the Message Broker.
+
+#### Message Broker
+
+- **Responsibilities:**
+  - Service-to-service communication routing
+  - Load balancing across service instances
+  - Circuit breaker implementation for fault tolerance
+  - Subscriber-based queues for Gateway-to-Service communication
+  - Topic-based queues for Service-to-Service event-driven communication
+  - Durable message queues with persistence
+  - Dead Letter Channel for failed messages
+  - Service high availability (automatic failover to healthy instances)
+  - **Saga transaction coordination** for long-running distributed transactions (replaces 2PC)
+  - Thread-per-Request architecture for concurrent request handling
+- **Technology:** **Go** – chosen for high-performance concurrent message processing and efficient resource utilization
+- **Communication Patterns:**
+  - **gRPC** for Service-to-Service synchronous communication (reduces overhead compared to REST)
+  - **WebSocket** for real-time message delivery and service subscriptions
+  - **HTTP REST** for Gateway routing and administrative endpoints
+- **Features:**
+  - **Subscriber-based queues:** Gateway knows which services to route requests to
+  - **Topic-based queues:** Services publish events without knowing subscribers (pub/sub pattern)
+  - **Load Balancing:** Round-robin distribution across healthy service instances
+  - **Circuit Breakers:** Automatic failure detection and request blocking for unhealthy services
+  - **Service High Availability:** Automatic rerouting to healthy instances when circuit breaker trips
+  - **Durable Queues:** Messages persisted to disk for reliability
+  - **Dead Letter Channel:** Failed messages after retries are moved to DLQ for manual inspection
+  - **Saga Transactions:** Orchestrates long-running distributed transactions with compensation logic
+    - **Saga Pattern:** Each step has a compensating action for rollback
+    - **Coordinator:** Gateway/Message Broker coordinates saga execution
+    - **Benefits over 2PC:** Better suited for long-running transactions, no blocking locks, eventual consistency
+- **Service Registration:** Services register with Service Discovery (Eureka) and include their subscribed topics in metadata
+
+#### Service Discovery
+
+- **Responsibilities:**
+  - Service registration and health monitoring
+  - Service instance discovery for load balancing
+  - Metadata management (including topic subscriptions)
+- **Technology:** **Java (Spring Cloud Eureka)**
+- **Communication Pattern:** REST API for service registration and discovery
+
+#### Data Warehouse
+
+- **Responsibilities:**
+  - Centralized data storage for analytics and reporting
+  - Periodic ETL (Extract, Transform, Load) processing from all service databases
+  - Data aggregation and denormalization for analytical queries
+  - Historical data retention for trend analysis
+- **Technology:** **PostgreSQL** (warehouse database) + **ETL Service** (Python/Java)
+- **ETL Process:**
+  - **Extract:** Periodically extracts data from all service databases (PostgreSQL and MongoDB)
+  - **Transform:** Normalizes, aggregates, and enriches data for analytical purposes
+  - **Load:** Loads transformed data into warehouse schema
+  - **Schedule:** Runs periodically (configurable, e.g., hourly, daily)
+  - **Incremental Updates:** Tracks last sync timestamp to only process new/changed data
+- **Data Sources:**
+  - User Management Service (PostgreSQL)
+  - Budgeting Service (PostgreSQL)
+  - Fund Raising Service (PostgreSQL)
+  - Sharing Service (PostgreSQL)
+  - Tea Management Service (PostgreSQL)
+  - Cab Booking Service (PostgreSQL)
+  - Lost & Found Service (PostgreSQL)
+  - Communication Service (MongoDB)
+  - Check-in Service (MongoDB)
+  - Notification Service (MongoDB)
+- **Warehouse Schema:**
+  - Denormalized fact tables for analytical queries
+  - Dimension tables for filtering and grouping
+  - Time-series data for trend analysis
+  - Aggregated metrics tables for dashboards
+- **Communication Pattern:**
+  - **ETL Job/Service:** Connects directly to service databases for extraction
+  - **Message Broker:** Can receive events for near-real-time updates (optional)
+  - **REST API:** Exposes warehouse data for reporting and analytics
+
+---
+
+### Business Services
+
+Below is a breakdown of each business service and how it communicates with others through the Message Broker.
 
 ### 1. User Management Service
 
 - Manages registration and user profiles (name, group, role: student, teacher, admin).
 - Integrates with Discord to fetch user details from the FAF Community Server.
 - **Communicates with:**
-  - **Cab Booking Service** to validate bookings.
-  - **Lost & Found Service** for user identity on posts.
-  - **Communication Service** to verify users in chats.
-  - **Check-in Service** to confirm entries/exits.
-  - **Budgeting Service** for any user-related financial actions.
+  - **Cab Booking Service** to validate bookings (via Message Broker).
+  - **Lost & Found Service** for user identity on posts (via Message Broker).
+  - **Communication Service** to verify users in chats (via Message Broker).
+  - **Check-in Service** to confirm entries/exits (via Message Broker).
+  - **Budgeting Service** for any user-related financial actions (via Message Broker).
 - **Technology:** **Java (Spring Boot + PostgreSQL)**
   - Motivation: Strong type-safety and reliable relational consistency for user identity management.
-- **Communication Pattern:** **REST API** for synchronous validation with Booking, Lost & Found, Communication, and Check-in.
-  - Trade-off: REST is simple and universal, though not as fast as event-driven systems. It is still ideal for identity checks.
+- **Communication Pattern:** 
+  - **gRPC** for synchronous validation requests (via Message Broker)
+  - **Topic-based events** for publishing user-related events (e.g., `user.request`, `auth.event`)
+  - Subscribes to topics: `user.request`, `auth.event`, `notification.status`
+- **Service Discovery:** Registers with Eureka including topic subscriptions in metadata
 
 ### 2. Fund Raising Service
 
@@ -70,11 +188,14 @@ Some services interact to share data or trigger actions, typically via **notific
 - Tracks donations and registers purchased objects in the appropriate services.
 - Sends leftover funds to the Budgeting Service.
 - **Communicates with:**
-  - **Tea Management Service** to register new consumables funded through campaigns.
-- **Technology:** **Python (Flask + PostgreSQL)**
-  - Motivation: Django’s ORM and admin interface speed up campaign management and donation tracking. PostgreSQL ensures ACID consistency for money flows.
-- **Communication Pattern:** **Event-driven messaging (RabbitMQ/Kafka)** to notify Tea Management when campaigns succeed.
-  - Trade-off: Asynchronous messaging decouples services but makes debugging harder. Fits since campaigns are not real-time critical.
+  - **Tea Management Service** to register new consumables funded through campaigns (via Message Broker).
+  - **Budgeting Service** to record donations and leftover funds (via Message Broker).
+- **Technology:** **Python (FastAPI + PostgreSQL)**
+  - Motivation: FastAPIS provides flexibility for campaign management and donation tracking. PostgreSQL ensures ACID consistency for money flows.
+- **Communication Pattern:** 
+  - **Topic-based events** published to Message Broker (e.g., `fundraising.completion`, `donation.received`)
+  - **gRPC** for synchronous operations when needed
+- **Service Discovery:** Registers with Eureka including topic subscriptions
 
 ### 3. Sharing Service
 
@@ -82,116 +203,165 @@ Some services interact to share data or trigger actions, typically via **notific
 - Tracks borrowing/returning and item state.
 - Updates the debt book if items are damaged.
 - **Communicates with:**
-  - **Cab Booking Service** to coordinate shared item usage during bookings.
-  - **Check-in Service** for tracking item usage by users entering/exiting.
-  - **Lost & Found Service** for reporting lost shared items.
-  - **Budgeting Service** to log debts for damaged items.
-  - **Notification Service** to alert users/owners about overdue or broken items.
+  - **Cab Booking Service** to coordinate shared item usage during bookings (via Message Broker).
+  - **Check-in Service** for tracking item usage by users entering/exiting (via Message Broker).
+  - **Lost & Found Service** for reporting lost shared items (via Message Broker).
+  - **Budgeting Service** to log debts for damaged items (via Message Broker).
+  - **Notification Service** to alert users/owners about overdue or broken items (via Message Broker).
 - **Technology:** **Python (FastAPI + PostgreSQL)**
   - Motivation: FastAPI provides lightweight APIs for object state changes. PostgreSQL ensures consistency when tracking loans/returns.
-- **Communication Pattern:** **REST API + Event-driven notifications**
-  - REST for synchronous lookups (Cab Booking, Check-in).
-  - Events for notifying about overdue items or damages.
-  - Trade-off: Slightly more complex, but balances responsiveness with decoupling.
+- **Communication Pattern:** 
+  - **gRPC** for synchronous lookups (Cab Booking, Check-in) via Message Broker
+  - **Topic-based events** for publishing item events (e.g., `item.rented`, `item.returned`, `item.created`)
+  - Subscribes to relevant topics for cross-service coordination
+- **Service Discovery:** Registers with Eureka including topic subscriptions
 
 ### 4. Tea Management Service
 
 - Tracks consumables (tea, sugar, cups, markers).
 - Logs usage per user and sends alerts for overuse or low stock.
 - **Communicates with:**
-  - **Notification Service** for alerts to admins and users.
-  - **Fund Raising Service** to receive new consumables funded through campaigns.
-  - **Budgeting Service** to update financial records for consumables usage and purchases.
+  - **Notification Service** for alerts to admins and users (via Message Broker).
+  - **Fund Raising Service** to receive new consumables funded through campaigns (via Message Broker).
+  - **Budgeting Service** to update financial records for consumables usage and purchases (via Message Broker).
 - **Technology:** **Java (Spring Boot + PostgreSQL)**
   - Motivation: Strong relational integrity needed for consumables stock management.
-- **Communication Pattern:** **REST API + Event-driven alerts**
-  - REST for updates from Fund Raising.
-  - Events for pushing low-stock notifications.
-  - Trade-off: REST ensures reliability in consumable updates, events provide timely notifications.
+- **Communication Pattern:** 
+  - **Topic-based events** for publishing tea-related events (e.g., `tea.order`, `tea.status`)
+  - **gRPC** for synchronous operations when needed
+  - Subscribes to topics: `tea.order`, `tea.status`, `notification.status`
+- **Service Discovery:** Registers with Eureka including topic subscriptions
 
 ### 5. Communication Service
 
 - Provides public and private chat functionality.
 - Applies censorship and bans repeat offenders.
 - **Communicates with:**
-  - **Lost & Found Service** to allow user verification in posts and discussions.
-  - **User Management Service** to validate users in chats.
-  - **Check-in Service** to verify active users for chat participation.
+  - **Lost & Found Service** to allow user verification in posts and discussions (via Message Broker).
+  - **User Management Service** to validate users in chats (via Message Broker).
+  - **Check-in Service** to verify active users for chat participation (via Message Broker).
 - **Technology:** **Java (Spring Boot + MongoDB)**
-- **Communication Pattern:** **WebSockets + REST**
-  - WebSockets for real-time messaging.
-  - REST for moderation and bans.
-  - Trade-off: WebSockets offer low-latency, but managing state adds complexity.
+- **Communication Pattern:** 
+  - **WebSockets** for real-time client messaging (direct to service)
+  - **gRPC** for service-to-service validation requests (via Message Broker)
+  - **Topic-based events** for publishing communication events (e.g., `message.request`, `user.action`)
+  - Subscribes to topics: `user.action`, `notification.status`, `message.request`
+- **Service Discovery:** Registers with Eureka including topic subscriptions
 
 ### 6. Cab Booking Service
 
 - Enables room scheduling (main room, kitchen).
 - Prevents conflicts and integrates with Google Calendar.
 - **Communicates with:**
-  - **Check-in Service** to verify users entering/exiting the Cab.
-  - **User Management Service** to validate bookings.
-  - **Sharing Service** to coordinate shared item usage during bookings.
-  - **Notification Service** to alert users about booking confirmations or conflicts.
-- **Technology**: **Python (Flask + Celery + PostgreSQL)** – chosen for flexibility in handling scheduling logic and easy async job management with Celery. PostgreSQL ensures robust relational constraints to avoid double-booking.
-- **Communication Pattern**: **REST API** for booking validation; **Events** for sending booking confirmations and updates to related services.
-- **Trade-offs**: Python is lightweight and easy to integrate with Google APIs, though concurrency handling requires Celery/RabbitMQ to ensure reliability at scale.
+  - **Check-in Service** to verify users entering/exiting the Cab (via Message Broker).
+  - **User Management Service** to validate bookings (via Message Broker).
+  - **Sharing Service** to coordinate shared item usage during bookings (via Message Broker).
+  - **Notification Service** to alert users about booking confirmations or conflicts (via Message Broker).
+- **Technology**: **Python (FastAPI + Celery + PostgreSQL)** – chosen for flexibility in handling scheduling logic and easy async job management with Celery. PostgreSQL ensures robust relational constraints to avoid double-booking.
+- **Communication Pattern**: 
+  - **gRPC** for synchronous validation requests (via Message Broker)
+  - **Topic-based events** for publishing booking events (e.g., `booking.created`, `booking.cancelled`)
+  - Subscribes to relevant topics for cross-service coordination
+- **Service Discovery:** Registers with Eureka including topic subscriptions
 
 ### 7. Check-in Service
 
 - Tracks entry/exit of users and guests (simulated CCTV).
 - Notifies admins of unknown visitors.
 - **Communicates with:**
-  - **Cab Booking Service** to validate user room bookings.
-  - **Notification Service** to alert users and admins of events.
-  - **Sharing Service** to track item usage by users entering/exiting.
-  - **User Management Service** to verify identities.
+  - **Cab Booking Service** to validate user room bookings (via Message Broker).
+  - **Notification Service** to alert users and admins of events (via Message Broker).
+  - **Sharing Service** to track item usage by users entering/exiting (via Message Broker).
+  - **User Management Service** to verify identities (via Message Broker).
 - **Technology**: **Python (FastAPI + OpenCV)** – chosen for simplicity in integrating AI/ML facial recognition.
-- **Communication Pattern**: REST for user check-in/out; events for alerts to Notification.
-- **Trade-offs**: Python excels at computer vision but may require optimization for real-time throughput.
+- **Communication Pattern**: 
+  - **gRPC** for synchronous validation requests (via Message Broker)
+  - **Topic-based events** for publishing check-in events (e.g., `checkin.entry`, `checkin.exit`)
+  - Subscribes to relevant topics for cross-service coordination
+- **Service Discovery:** Registers with Eureka including topic subscriptions
 
 ### 8. Lost & Found Service
 
 - Users can post announcements about lost/found items.
 - Supports comments and resolving posts.
 - **Communicates with:**
-  - **Communication Service** to verify users participating in posts.
-  - **User Management Service** to verify user identities.
-  - **Notification Service** for updates on comments or resolved posts.
-  - **Sharing Service** for reporting lost shared items.
+  - **Communication Service** to verify users participating in posts (via Message Broker).
+  - **User Management Service** to verify user identities (via Message Broker).
+  - **Notification Service** for updates on comments or resolved posts (via Message Broker).
+  - **Sharing Service** for reporting lost shared items (via Message Broker).
 - **Technology**: **Node.js (Express)** – chosen for lightweight, event-driven handling of posts and user interactions.
-- **Communication Pattern**: REST for post management; events for notifications and discussions.
-- **Trade-offs**: Node.js is fast for I/O-bound tasks but less suited for CPU-heavy processing (not needed here).
+- **Communication Pattern**: 
+  - **gRPC** for synchronous validation requests (via Message Broker)
+  - **Topic-based events** for publishing lost & found events (e.g., `lnf.post.created`, `lnf.post.resolved`)
+  - Subscribes to relevant topics for cross-service coordination
+- **Service Discovery:** Registers with Eureka including topic subscriptions
 
 ### 9. Budgeting Service
 
 - Tracks finances: incomes, donations, expenses.
 - Maintains debt book and generates CSV reports.
 - **Communicates with:**
-  - **Tea Management Service** to track consumable costs.
-  - **Sharing Service** to log debts or damages.
+  - **Tea Management Service** to track consumable costs (via Message Broker).
+  - **Sharing Service** to log debts or damages (via Message Broker).
+  - **Fund Raising Service** to record donations (via Message Broker).
 - **Technology**: **Node.js (NestJS)** – chosen for modularity and ability to handle financial transaction APIs.
-- **Communication Pattern**: REST for finance queries; events for updating debts/expenses.
-- **Trade-offs**: Node.js is excellent for building lightweight APIs, though less strict in typing compared to Java.
+- **Communication Pattern**: 
+  - **gRPC** for synchronous finance queries (via Message Broker)
+  - **Topic-based events** for publishing financial events (e.g., `debt.created`, `payment.received`)
+  - Subscribes to relevant topics for cross-service coordination
+  - **2 Phase Commits** for multi-database transactions (coordinated by Message Broker)
+- **Service Discovery:** Registers with Eureka including topic subscriptions
 
 ### 10. Notification Service
 
 - Sends timely alerts to users, admins, or owners.
 - Acts as a **central communication hub** for alerts triggered by other services.
 - **Communicates with:**
-  - **Lost & Found Service** for post updates.
-  - **Check-in Service** for entry/exit notifications.
-  - **Cab Booking Service** for booking alerts.
-  - **Tea Management Service** for consumable usage alerts.
-  - **Budgeting Service** for financial updates.
-  - **Sharing Service** for item usage and overdue notifications.
+  - **Lost & Found Service** for post updates (via Message Broker).
+  - **Check-in Service** for entry/exit notifications (via Message Broker).
+  - **Cab Booking Service** for booking alerts (via Message Broker).
+  - **Tea Management Service** for consumable usage alerts (via Message Broker).
+  - **Budgeting Service** for financial updates (via Message Broker).
+  - **Sharing Service** for item usage and overdue notifications (via Message Broker).
 - **Technology**: **Java (Spring Boot)**
+- **Communication Pattern**: 
+  - **Topic-based events** for receiving notifications from various services
+  - Subscribes to topics: `notification.request`, `email.send`, `sms.send`, `item.rented`, `item.returned`, `item.created`, `fundraiser.created`, `donation.received`, `fundraising.completion`
+- **Service Discovery:** Registers with Eureka including topic subscriptions
 
 ---
 
 ## Communication Overview
 
-- **REST APIs** are used for synchronous, user-facing operations (e.g., creating bookings, posting lost items).
-- **WebSockets** are used for real-time chat in the Communication service.
+### Architecture Pattern
+
+The system follows a **Message Broker pattern** where:
+
+1. **Gateway Service** handles:
+   - User authentication (Discord OAuth2, JWT validation)
+   - Response caching
+   - Routes authenticated requests to backend services via Message Broker
+
+2. **Message Broker** handles:
+   - All service-to-service communication
+   - Load balancing across service instances
+   - Circuit breaking for fault tolerance
+   - Service high availability (automatic failover)
+   - Reliable message delivery with durable queues
+   - Dead Letter Channel for failed messages
+   - **Saga transaction coordination** for long-running distributed transactions
+
+3. **Communication Patterns:**
+   - **Subscriber-based queues:** Gateway-to-Service routing (Gateway knows target services)
+   - **Topic-based queues:** Service-to-Service event-driven communication (pub/sub pattern)
+   - **gRPC:** Service-to-Service synchronous communication (reduces overhead vs REST)
+   - **WebSockets:** Real-time message delivery and service subscriptions
+   - **HTTP REST:** Gateway routing and administrative endpoints
+
+4. **Service Discovery:**
+   - Services register with Eureka and include their subscribed topics in metadata
+   - Message Broker uses Service Discovery to find healthy service instances
+   - Load balancing automatically routes to available instances
 
 ---
 
@@ -208,17 +378,49 @@ The platform follows a **database-per-service** pattern where each microservice 
 
 ### Storage Technologies
 
-| Database       | Services                                                               | Use Cases                                                      |
-| -------------- | ---------------------------------------------------------------------- | -------------------------------------------------------------- |
-| **PostgreSQL** | User, Lost & Found, Fund Raising, Tea, Sharing, Budgeting, Cab Booking | Structured data, ACID transactions, relational queries         |
-| **MongoDB**    | Communication, Check-In, Notification                                  | Unstructured data, real-time messaging, logs, flexible schemas |
+| Database       | Services                                                               | Use Cases                                                      | Replication Strategy |
+| -------------- | ---------------------------------------------------------------------- | -------------------------------------------------------------- | -------------------- |
+| **PostgreSQL** | User, Lost & Found, Fund Raising, Tea, Sharing, Budgeting, Cab Booking | Structured data, ACID transactions, relational queries         | Master-Slave (2+ replicas) with automatic failover |
+| **MongoDB**    | Communication, Check-In, Notification                                  | Unstructured data, real-time messaging, logs, flexible schemas | Replica Set (minimum 2 replicas) with automatic failover |
+
+### Database Replication and High Availability
+
+All database services implement **redundancy and replication** with automatic failover:
+
+- **PostgreSQL Services:**
+  - **Primary-Replica Architecture:** Each service has 1 primary and minimum 2 replica instances
+  - **Streaming Replication:** Real-time WAL (Write-Ahead Log) replication
+  - **Automatic Failover:** Health monitoring detects primary failures and promotes replica
+  - **Read Scaling:** Read queries can be distributed across replicas
+  - **Data Consistency:** Synchronous replication for critical writes, asynchronous for performance
+
+- **MongoDB Services:**
+  - **Replica Set:** Minimum 3 nodes (1 primary + 2 secondaries)
+  - **Automatic Failover:** Primary election when primary node fails
+  - **Read Preferences:** Configurable read distribution (primary, secondary, nearest)
+  - **Write Concern:** Configurable write acknowledgment levels
+
+- **Failover Mechanism:**
+  - Health checks monitor database instances
+  - Service Discovery updates available instances
+  - Message Broker automatically routes to healthy database connections
+  - Zero-downtime failover for read operations
+  - Minimal downtime for write operations during primary promotion
 
 ### Data Consistency Model
 
-- **Immediate user actions**: Synchronous REST API calls
-- **Cross-service propagation**: Asynchronous events with outbox pattern
+- **Immediate user actions**: Synchronous gRPC calls via Message Broker (Gateway → Service)
+- **Cross-service propagation**: Asynchronous topic-based events with durable queues
+- **Distributed transactions**: **Saga pattern** coordinated by Gateway/Message Broker
+  - **Saga Pattern:** Long-running transactions broken into steps with compensating actions
+  - **Orchestration:** Gateway/Message Broker coordinates saga execution
+  - **Compensation:** Each step has a compensating transaction for rollback
+  - **Eventual Consistency:** System eventually reaches consistent state
+  - **Benefits:** No blocking locks, better for long-running operations, handles partial failures gracefully
 - **Audit trails**: Asynchronous event processing with idempotent consumers
-- **Error handling**: Dead letter queues (DLQ) and retry mechanisms
+- **Error handling**: Dead Letter Channel (DLC) for messages that fail after retries
+- **Message persistence**: Durable queues ensure messages survive broker restarts
+- **Database consistency**: Primary-replica replication with automatic failover ensures data availability
 
 ### Privacy and Data Ownership
 
@@ -263,7 +465,9 @@ The platform follows a **database-per-service** pattern where each microservice 
 
 - **Maintains immutable ledger** for all financial transactions
 - **Tracks debts, payments, payouts, and donations**
-- **Exposes balance information** to other services
+- **Exposes balance information** to other services via Message Broker
+- **Participates in Saga transactions** for multi-database operations (e.g., when resolving Lost & Found posts)
+- **Database Replication:** Primary-replica setup with 2+ replicas for high availability
 
 ## API Documentation
 
@@ -1679,6 +1883,427 @@ Base Path: `/notificationsvc/api/v1`
     "loanId": "uuid"
   }
   ```
+
+---
+
+## Message Broker API Documentation
+
+**Base Path:** `/api/v1`
+
+### Endpoints
+
+#### Health Check
+- **METHOD:** GET
+- **PATH:** `/health`
+- **RESPONSE (200):**
+```json
+{
+  "status": "healthy",
+  "broker": "broker-prod-1"
+}
+```
+
+#### Route Request (Gateway-to-Service)
+- **METHOD:** POST
+- **PATH:** `/api/v1/route`
+- **DESCRIPTION:** Gateway uses this endpoint to route requests to backend services
+- **REQUEST BODY:**
+```json
+{
+  "service": "user-service",
+  "method": "GET",
+  "path": "/users/{id}",
+  "headers": {
+    "Authorization": "Bearer <JWT>"
+  },
+  "body": null,
+  "requestId": "uuid"
+}
+```
+- **RESPONSE (200):**
+```json
+{
+  "requestId": "uuid",
+  "statusCode": 200,
+  "headers": {},
+  "body": {},
+  "error": null
+}
+```
+- **FEATURES:**
+  - Automatic load balancing across service instances
+  - Circuit breaker protection
+  - Automatic failover to healthy instances
+  - Request timeout handling
+
+#### List Available Topics
+- **METHOD:** GET
+- **PATH:** `/api/v1/topics`
+- **DESCRIPTION:** Returns list of all topics available in the Message Broker
+- **RESPONSE (200):**
+```json
+{
+  "topics": [
+    {
+      "name": "user.request",
+      "subscribers": 2,
+      "messagesInQueue": 5
+    },
+    {
+      "name": "notification.status",
+      "subscribers": 3,
+      "messagesInQueue": 12
+    }
+  ]
+}
+```
+
+#### List Dead Letter Channel Messages
+- **METHOD:** GET
+- **PATH:** `/api/v1/dlq`
+- **DESCRIPTION:** Returns messages in the Dead Letter Channel
+- **QUERY PARAMETERS:**
+  - `limit` (optional, default: 100)
+  - `offset` (optional, default: 0)
+- **RESPONSE (200):**
+```json
+{
+  "messages": [
+    {
+      "id": "uuid",
+      "topic": "notification.request",
+      "payload": {},
+      "error": "Max retries exceeded",
+      "retries": 5,
+      "timestamp": "2025-01-15T10:30:00Z",
+      "originalService": "lost-found-service"
+    }
+  ],
+  "total": 15,
+  "limit": 100,
+  "offset": 0
+}
+```
+
+### WebSocket Endpoint
+
+#### Service Connection
+- **PATH:** `/ws/service`
+- **DESCRIPTION:** Services connect via WebSocket to receive messages
+- **PROTOCOL:** WebSocket
+- **MESSAGE FORMAT:**
+```json
+{
+  "type": "subscribe|publish|ack",
+  "topic": "notification.request",
+  "payload": {},
+  "messageId": "uuid"
+}
+```
+
+### gRPC Service
+
+- **PORT:** 9090 (default)
+- **SERVICE:** `MessageBroker`
+- **METHODS:**
+  - `PublishMessage(topic, payload)` - Publish message to topic
+  - `SubscribeToTopic(topic)` - Subscribe to topic
+  - `RouteRequest(service, method, path, headers, body)` - Route request to service
+  - `StartSaga(sagaId, steps)` - Start a new saga transaction
+  - `ExecuteSagaStep(sagaId, stepId, payload)` - Execute a saga step
+  - `CompensateSagaStep(sagaId, stepId)` - Compensate a saga step
+  - `GetSagaStatus(sagaId)` - Get saga transaction status
+
+---
+
+## Gateway Service API Documentation
+
+**Base Path:** `/api/v1`
+
+### Endpoints
+
+#### Health Check
+- **METHOD:** GET
+- **PATH:** `/health`
+- **RESPONSE (200):**
+```json
+{
+  "status": "healthy",
+  "cache": {
+    "nodes": 3,
+    "sharding": "consistent-hashing"
+  }
+}
+```
+
+#### Start Saga Transaction
+- **METHOD:** POST
+- **PATH:** `/api/v1/saga/start`
+- **DESCRIPTION:** Initiates a long-running saga transaction
+- **REQUEST BODY:**
+```json
+{
+  "sagaId": "uuid",
+  "steps": [
+    {
+      "stepId": "step-1",
+      "service": "sharing-service",
+      "action": "loanItem",
+      "payload": {
+        "itemId": "uuid",
+        "holderId": "uuid"
+      },
+      "compensation": {
+        "action": "returnItem",
+        "payload": {}
+      }
+    },
+    {
+      "stepId": "step-2",
+      "service": "budgeting-service",
+      "action": "createDebt",
+      "payload": {
+        "userId": "uuid",
+        "amount": 25.0
+      },
+      "compensation": {
+        "action": "cancelDebt",
+        "payload": {}
+      }
+    }
+  ]
+}
+```
+- **RESPONSE (202):**
+```json
+{
+  "sagaId": "uuid",
+  "status": "STARTED",
+  "startedAt": "2025-01-15T10:30:00Z"
+}
+```
+
+#### Get Saga Status
+- **METHOD:** GET
+- **PATH:** `/api/v1/saga/{sagaId}/status`
+- **RESPONSE (200):**
+```json
+{
+  "sagaId": "uuid",
+  "status": "IN_PROGRESS|COMPLETED|FAILED|COMPENSATING",
+  "currentStep": "step-2",
+  "completedSteps": ["step-1"],
+  "failedSteps": [],
+  "startedAt": "2025-01-15T10:30:00Z",
+  "updatedAt": "2025-01-15T10:31:00Z"
+}
+```
+
+#### Cache Sharding Information
+- **METHOD:** GET
+- **PATH:** `/api/v1/cache/sharding`
+- **DESCRIPTION:** Returns information about cache sharding configuration
+- **RESPONSE (200):**
+```json
+{
+  "algorithm": "consistent-hashing",
+  "nodes": [
+    {
+      "id": "redis-node-1",
+      "host": "redis-1:6379",
+      "virtualNodes": 150,
+      "keys": 1250
+    },
+    {
+      "id": "redis-node-2",
+      "host": "redis-2:6379",
+      "virtualNodes": 150,
+      "keys": 1180
+    },
+    {
+      "id": "redis-node-3",
+      "host": "redis-3:6379",
+      "virtualNodes": 150,
+      "keys": 1220
+    }
+  ],
+  "totalKeys": 3650,
+  "hashFunction": "sha256"
+}
+```
+
+---
+
+## Data Warehouse API Documentation
+
+**Base Path:** `/warehouse/api/v1`
+
+### Endpoints
+
+#### Health Check
+- **METHOD:** GET
+- **PATH:** `/health`
+- **RESPONSE (200):**
+```json
+{
+  "status": "healthy",
+  "lastETLRun": "2025-01-15T09:00:00Z",
+  "nextETLRun": "2025-01-15T10:00:00Z"
+}
+```
+
+#### Trigger ETL Job
+- **METHOD:** POST
+- **PATH:** `/etl/trigger`
+- **DESCRIPTION:** Manually trigger ETL job execution
+- **REQUEST BODY (optional):**
+```json
+{
+  "incremental": true,
+  "since": "2025-01-15T08:00:00Z",
+  "services": ["user-service", "budgeting-service"]
+}
+```
+- **RESPONSE (202):**
+```json
+{
+  "jobId": "uuid",
+  "status": "STARTED",
+  "startedAt": "2025-01-15T10:30:00Z"
+}
+```
+
+#### Get ETL Job Status
+- **METHOD:** GET
+- **PATH:** `/etl/jobs/{jobId}`
+- **RESPONSE (200):**
+```json
+{
+  "jobId": "uuid",
+  "status": "RUNNING|COMPLETED|FAILED",
+  "progress": {
+    "totalServices": 10,
+    "processedServices": 7,
+    "recordsProcessed": 15420,
+    "recordsFailed": 0
+  },
+  "startedAt": "2025-01-15T10:30:00Z",
+  "completedAt": null,
+  "error": null
+}
+```
+
+#### Query Warehouse Data
+- **METHOD:** POST
+- **PATH:** `/query`
+- **DESCRIPTION:** Execute analytical queries on warehouse data
+- **REQUEST BODY:**
+```json
+{
+  "query": "SELECT service_name, COUNT(*) as total_events, DATE(created_at) as date FROM events WHERE created_at >= '2025-01-01' GROUP BY service_name, DATE(created_at)",
+  "format": "json|csv"
+}
+```
+- **RESPONSE (200):**
+```json
+{
+  "results": [
+    {
+      "service_name": "user-service",
+      "total_events": 1250,
+      "date": "2025-01-15"
+    }
+  ],
+  "rowCount": 1,
+  "executionTime": "0.045s"
+}
+```
+
+#### Get Warehouse Schema
+- **METHOD:** GET
+- **PATH:** `/schema`
+- **DESCRIPTION:** Returns warehouse schema information
+- **RESPONSE (200):**
+```json
+{
+  "tables": [
+    {
+      "name": "users_fact",
+      "columns": ["user_id", "email", "name", "roles", "created_at", "updated_at"],
+      "source": "user-service",
+      "lastUpdated": "2025-01-15T09:00:00Z"
+    },
+    {
+      "name": "transactions_fact",
+      "columns": ["transaction_id", "user_id", "amount", "type", "created_at"],
+      "source": "budgeting-service",
+      "lastUpdated": "2025-01-15T09:00:00Z"
+    }
+  ]
+}
+```
+
+#### Get ETL Statistics
+- **METHOD:** GET
+- **PATH:** `/etl/statistics`
+- **DESCRIPTION:** Returns ETL processing statistics
+- **RESPONSE (200):**
+```json
+{
+  "lastRun": "2025-01-15T09:00:00Z",
+  "nextRun": "2025-01-15T10:00:00Z",
+  "totalRuns": 1245,
+  "successfulRuns": 1240,
+  "failedRuns": 5,
+  "averageDuration": "45.2s",
+  "servicesProcessed": 10,
+  "totalRecordsProcessed": 1250000
+}
+```
+
+---
+
+## Architecture Enhancements
+
+### Consistent Hashing for Cache Sharding
+
+The Gateway Service implements **Consistent Hashing** for distributed cache sharding:
+
+- **Hash Ring:** Cache keys are mapped to a hash ring using SHA-256
+- **Virtual Nodes:** Each Redis node has 150 virtual nodes for better distribution
+- **Key Distribution:** Keys are distributed evenly across shards
+- **Node Addition/Removal:** Only ~1/n keys need to be redistributed when nodes change
+- **Comparison with Redis Cluster:**
+  - **Custom Consistent Hashing:** More control, predictable key placement, customizable hash function
+  - **Redis Cluster:** Built-in sharding, automatic failover, but less flexible
+  - **Our Choice:** Custom implementation for fine-grained control and minimal reshuffling
+
+### Database Replication and Failover
+
+All database services implement high availability:
+
+- **PostgreSQL:** Primary-Replica with streaming replication (2+ replicas)
+- **MongoDB:** Replica Sets with automatic primary election (3+ nodes)
+- **Failover:** Automatic promotion of replicas when primary fails
+- **Read Scaling:** Read queries distributed across replicas
+- **Zero Downtime:** Minimal service interruption during failover
+
+### Data Warehouse and ETL
+
+- **Centralized Warehouse:** PostgreSQL database aggregating data from all services
+- **ETL Process:** Periodic extraction, transformation, and loading
+- **Incremental Updates:** Only processes new/changed data since last run
+- **Analytical Queries:** Denormalized schema optimized for reporting
+- **Schedule:** Configurable (hourly/daily) with manual trigger option
+
+### Saga Transactions
+
+Replaces 2 Phase Commits with **Saga pattern** for long-running transactions:
+
+- **Orchestration:** Gateway/Message Broker coordinates saga execution
+- **Compensation:** Each step has a compensating action for rollback
+- **Eventual Consistency:** System eventually reaches consistent state
+- **Benefits:** No blocking locks, handles partial failures, better for long operations
 
 ---
 
